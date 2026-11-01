@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ATLAS // 深空防线 · 游戏化运维演练指挥舱</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="stage"></canvas>
+  <div id="labels"></div>
+
+  <div id="hud" class="hud">
+    <div class="hud-tint" id="tint"></div>
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+    <div class="frame">
+      <i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i>
+      <span class="frame-tag left">ATLAS DEFENSE GRID · SECTOR 07</span>
+      <span class="frame-tag right">SIMULATION // CLASSIFIED</span>
+    </div>
+
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg viewBox="0 0 48 48" aria-hidden="true">
+            <path d="M24 3 L43 14 V34 L24 45 L5 34 V14 Z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M24 10 L36 17 V31 L24 38 L12 31 V17 Z" fill="none" stroke="currentColor" stroke-width="1" opacity=".55"/>
+            <path d="M24 16 L30 27 H18 Z" fill="currentColor" opacity=".9"/>
+            <circle cx="24" cy="24" r="19" fill="none" stroke="currentColor" stroke-width=".6" stroke-dasharray="2 6" opacity=".7"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="brand-title">ATLAS <span>// 深空防线</span></div>
+          <div class="brand-sub">GAMIFIED SRE DRILL · 游戏化运维演练指挥舱</div>
+        </div>
+      </div>
+
+      <div class="phases" id="phases">
+        <div class="phase" data-p="1">
+          <span class="p-no">P1</span>
+          <span class="p-body"><b>红蓝对抗</b><em>DDoS 洪峰</em></span>
+        </div>
+        <div class="phase" data-p="2">
+          <span class="p-no">P2</span>
+          <span class="p-body"><b>故障注入</b><em>核心库宕机</em></span>
+        </div>
+        <div class="phase" data-p="3">
+          <span class="p-no">P3</span>
+          <span class="p-body"><b>BOSS 决战</b><em>APT 总攻</em></span>
+        </div>
+        <div class="phase-track"><i id="phaseProgress"></i></div>
+      </div>
+
+      <div class="topmeta">
+        <div class="meta">
+          <label>演练计时</label>
+          <b id="clock">00:00</b>
+        </div>
+        <div class="meta">
+          <label>链路状态</label>
+          <b id="runState" class="ok">待命</b>
+        </div>
+        <div class="top-actions">
+          <button class="icon-btn" id="btnSound" title="音效 (M)"><span>♪</span></button>
+          <button class="icon-btn" id="btnHud" title="隐藏 HUD (H)"><span>◫</span></button>
+          <button class="icon-btn" id="btnFull" title="全屏 (F)"><span>⛶</span></button>
+        </div>
+      </div>
+    </header>
+
+    <aside class="col left">
+      <section class="panel nodes">
+        <header><span class="tick"></span>节点矩阵 <em>NODE MATRIX</em><span class="badge" id="aliveCount">6 / 6</span></header>
+        <div class="node-list" id="nodeList"></div>
+        <div class="node-foot">
+          <span><i class="dot ok"></i>ONLINE</span>
+          <span><i class="dot warn"></i>DEGRADED</span>
+          <span><i class="dot bad"></i>OFFLINE</span>
+        </div>
+      </section>
+
+      <section class="panel objectives">
+        <header><span class="tick"></span>演练目标 <em>OBJECTIVES</em></header>
+        <ul id="objectives">
+          <li data-k="1"><i></i><b>抵御 DDoS 洪峰</b><span>拦截率 ≥ 99.9%</span></li>
+          <li data-k="2"><i></i><b>核心库主备切换</b><span>RTO ≤ 60s · RPO = 0</span></li>
+          <li data-k="3"><i></i><b>击退 APT 母舰</b><span>护盾完整度 ≥ 40%</span></li>
+        </ul>
+        <div class="obj-progress"><i id="objProgress"></i></div>
+      </section>
+    </aside>
+
+    <aside class="col right">
+      <section class="panel kpi">
+        <header><span class="tick"></span>战况总览 <em>COMBAT TELEMETRY</em></header>
+        <div class="kpi-hero">
+          <div class="kpi-hero-head"><label>攻击流量</label><span id="threatTag" class="tag">LOW</span></div>
+          <div class="hero-num"><b id="qps">8.2</b><span>K QPS</span></div>
+          <canvas id="spark" width="560" height="96"></canvas>
+        </div>
+        <div class="kpi-grid">
+          <div><label>拦截率</label><b><span id="intercept">99.99</span><small>%</small></b></div>
+          <div><label>平均延迟</label><b><span id="latency">12</span><small>ms</small></b></div>
+          <div><label>RTO 恢复</label><b><span id="rto">—</span><small>s</small></b></div>
+          <div><label>RPO 丢失</label><b><span id="rpo">0</span><small>s</small></b></div>
+        </div>
+        <div class="shield-row">
+          <div class="ring" id="shieldRing" style="--p:100">
+            <div class="ring-inner"><b id="shieldPct">100</b><small>%</small></div>
+          </div>
+          <div class="shield-meta">
+            <label>能量护盾</label>
+            <span>SHIELD INTEGRITY</span>
+            <div class="mini"><i id="shieldBar" style="width:100%"></i></div>
+            <div class="shield-stats"><em id="blocked">0</em> 次拦截</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel score">
+        <div class="score-main">
+          <label>SCORE · 防守积分</label>
+          <b id="score">0</b>
+        </div>
+        <div class="combo" id="combo"><small>COMBO</small><b>×1</b></div>
+      </section>
+
+      <section class="panel feed">
+        <header><span class="tick"></span>击杀播报 <em>KILL FEED</em></header>
+        <div class="feed-list" id="feedList"></div>
+      </section>
+    </aside>
+
+    <div class="announce" id="announce">
+      <div class="a-line"></div>
+      <div class="a-kicker" id="aKicker">SYSTEM ALERT</div>
+      <div class="a-title" id="aTitle">检测到入侵</div>
+      <div class="a-sub" id="aSub"></div>
+      <div class="a-line"></div>
+    </div>
+
+    <div class="bossbar" id="bossbar">
+      <div class="boss-name"><span>BOSS</span> APT 母舰「黑潮」<em>DREADNOUGHT-CLASS</em></div>
+      <div class="boss-hp"><i id="bossHp"></i><u></u></div>
+      <div class="boss-meta"><span id="bossPct">100.0%</span><span>PHASE 3 / 3</span></div>
+    </div>
+
+    <div class="subtitle" id="subtitle"></div>
+
+    <footer class="bottom">
+      <section class="panel terminal">
+        <header><span class="live"></span>战术终端 <em>TACTICAL LOG</em><span class="term-cursor">_</span></header>
+        <div class="term" id="terminal"></div>
+      </section>
+
+      <div class="actionbar" id="actionbar">
+        <button class="btn primary" id="btnStart"><span class="b-ico">▶</span> 启动演练 <kbd>SPACE</kbd></button>
+        <button class="btn ghost" id="btnNext"><span class="b-ico">Ⅱ</span> 暂停演练 <kbd>P</kbd></button>
+        <div class="hint" id="hint">空格 启动 / 推进 · 拖拽旋转 · 滚轮缩放 · <kbd>H</kbd> 隐藏 HUD</div>
+      </div>
+
+      <div class="coords">
+        <div><label>CAM</label><span id="camMode">CINEMATIC</span></div>
+        <div><label>FPS</label><span id="fps">60</span></div>
+      </div>
+    </footer>
+
+    <div class="result" id="result">
+      <div class="result-card">
+        <div class="r-kicker">DRILL COMPLETE · 演练完成</div>
+        <div class="r-main">
+          <div class="r-rank">S</div>
+          <div class="r-copy">
+            <h2>防区守住了。</h2>
+            <p>全链路故障注入与红蓝对抗演练通过，核心业务零感知切换。</p>
+            <div class="r-stars">★★★★★</div>
+          </div>
+        </div>
+        <div class="r-grid">
+          <div><label>总积分</label><b id="rScore">0</b></div>
+          <div><label>最高连击</label><b id="rCombo">—</b></div>
+          <div><label>拦截攻击</label><b id="rBlocked">0</b></div>
+          <div><label>RTO</label><b id="rRto">42s</b></div>
+          <div><label>RPO</label><b id="rRpo">0s</b></div>
+          <div><label>护盾剩余</label><b id="rShield">—</b></div>
+        </div>
+        <div class="r-actions">
+          <button class="btn primary" id="btnReplay"><span class="b-ico">↻</span> 再次演练</button>
+          <button class="btn ghost" id="btnCloseResult">查看战场</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="flash" id="flash"></div>
+    <div class="damage" id="damage"></div>
+  </div>
+
+  <div class="boot" id="boot">
+    <div class="boot-mark">ATLAS</div>
+    <div class="boot-sub">INITIALIZING DEFENSE GRID</div>
+    <div class="boot-bar"><i></i></div>
+    <div class="boot-foot">DRILL-2077 · 游戏化运维演练大屏</div>
+  </div>
+</div>
+<script>/*__JS__*/</script>
+</body>
+</html>
