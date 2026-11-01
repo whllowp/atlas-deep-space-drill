@@ -186,6 +186,9 @@ export class Game {
     this.hud = hud;
     this.time = 0;
     this.paused = false;
+    this.cinematic = false;
+    this.cineT = 0;
+    this.cineShot = 0;
 
     this.glowTex = makeGlowTexture();
     this.particles = new Particles(scene);
@@ -823,6 +826,21 @@ export class Game {
   }
 
   /* ---------------------------------------------------------------- camera */
+  setTheme(mode) {
+    const city = mode === 'city';
+    if (this.enemyMesh) this.enemyMesh.material.color.set(city ? 0xff6a2a : 0x8f1226);
+    if (this.trails) this.trails.material.color.set(city ? 0xff8a3c : 0xff2038);
+    if (this.enemyGlow) this.enemyGlow.material.color.set(city ? 0xff8a3c : 0xff3a2a);
+    if (this.cam.mode === 'wide') this.setCamGoal('wide');
+  }
+
+  setCinematic(v) {
+    this.cinematic = !!v;
+    this.cineT = 0;
+    this.cineShot = 0;
+    if (this.cam.mode === 'wide') this.setCamGoal('wide');
+  }
+
   setCamGoal(mode) {
     const target = new THREE.Vector3();
     let yaw = this.cam.goal.yaw;
@@ -830,9 +848,24 @@ export class Game {
     let dist = 60;
     let fov = 46;
     if (mode === 'wide') {
+      const city = this.world.theme === 'city';
       yaw = this.cam.goal.yaw;
-      pitch = 0.2; dist = 46; fov = 48;
-      target.set(0, 9, 0);
+      pitch = city ? 0.12 : 0.2; dist = city ? 52 : 46; fov = city ? 50 : 48;
+      target.set(0, city ? 10.6 : 9, 0);
+      if (this.cinematic) {
+        const shots = [
+          { off: 0.0, pitch: 0.09, dist: 54, fov: 42, ty: city ? 11 : 9.5 },
+          { off: 0.62, pitch: 0.05, dist: 34, fov: 37, ty: city ? 13.5 : 12 },
+          { off: -0.48, pitch: 0.4, dist: 44, fov: 40, ty: city ? 9 : 8 },
+          { off: 1.05, pitch: 0.1, dist: 40, fov: 39, ty: city ? 12 : 10.5 },
+        ];
+        const shot = shots[this.cineShot % shots.length];
+        yaw += shot.off;
+        pitch = shot.pitch;
+        dist = shot.dist;
+        fov = shot.fov;
+        target.set(0, shot.ty, 0);
+      }
     } else if (mode === 'db') {
       const tw = this.world.towers[3];
       yaw = Math.PI / 2 - THREE.MathUtils.degToRad(NODES[3].angle) + 0.52;
@@ -894,7 +927,7 @@ export class Game {
     if (c.manual > 0) c.manual -= dt;
     else {
       const g = c.goal;
-      if (c.mode === 'wide') g.yaw += dt * 0.02;
+      if (c.mode === 'wide') g.yaw += dt * (this.cinematic ? 0.007 : 0.02);
       const k = 1 - Math.exp(-dt * 1.6);
       c.yaw += (g.yaw - c.yaw) * k;
       c.pitch += (g.pitch - c.pitch) * k;
@@ -997,6 +1030,14 @@ export class Game {
       this.updateLasers(dt);
       this.updateRepair(dt);
       this.world.update(t, dt);
+    }
+    if (this.cinematic && this.cam.mode === 'wide' && this.cam.manual <= 0) {
+      this.cineT += dt;
+      if (this.cineT > 8.5) {
+        this.cineT = 0;
+        this.cineShot = (this.cineShot + 1) % 4;
+        this.setCamGoal('wide');
+      }
     }
     this.updateCamera(dt);
     this.audio.setThreat(st.threat || 0);

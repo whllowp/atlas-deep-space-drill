@@ -27,6 +27,7 @@ export class HUD {
       result: $('result'), flash: $('flash'), damage: $('damage'), tint: $('tint'),
       btnStart: $('btnStart'), btnNext: $('btnNext'), hint: $('hint'),
       fps: $('fps'), camMode: $('camMode'), sound: $('btnSound'),
+      themeChip: $('themeChip'), btnTheme: $('btnTheme'),
       rScore: $('rScore'), rCombo: $('rCombo'), rBlocked: $('rBlocked'),
       rRto: $('rRto'), rRpo: $('rRpo'), rShield: $('rShield'),
     };
@@ -54,6 +55,9 @@ export class HUD {
     $('btnSound').addEventListener('click', () => this.onAction('sound'));
     $('btnFull').addEventListener('click', () => this.onAction('fullscreen'));
     $('btnHud').addEventListener('click', () => this.onAction('hud'));
+    $('btnConsole').addEventListener('click', () => this.onAction('console'));
+    this.el.btnTheme.addEventListener('click', () => this.onAction('theme'));
+    $('btnCine').addEventListener('click', () => this.onAction('cinematic'));
     $('btnReplay').addEventListener('click', () => this.onAction('restart'));
     $('btnCloseResult').addEventListener('click', () => this.hideResult());
   }
@@ -97,6 +101,14 @@ export class HUD {
     this.lastPhase = -1;
     this.el.objectives.querySelectorAll('li').forEach((li) => li.classList.remove('active', 'done'));
     this.el.objProgress.style.width = '0%';
+  }
+
+  setTheme(mode) {
+    const city = mode === 'city';
+    this.el.themeChip.textContent = city ? 'NEO CITY' : 'DEEP SPACE';
+    this.el.themeChip.title = city ? '赛博都市 · 点击切换深空防线' : '深空防线 · 点击切换赛博都市';
+    this.el.btnTheme.classList.toggle('city', city);
+    document.body.classList.toggle('theme-city', city);
   }
 
   setPaused(p) {

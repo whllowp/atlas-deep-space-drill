@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { CityTheme } from './city.js';
 import {
   makeGlowTexture, makeNebulaTexture, makePillarTexture, makePlanetTexture,
   SHIELD_VERT, SHIELD_FRAG, GROUND_VERT, GROUND_FRAG, CORE_VERT, CORE_FRAG,
@@ -34,6 +35,9 @@ function hexRing(radius, tube, color, opacity = 0.8) {
 export class World {
   constructor(scene) {
     this.scene = scene;
+    this.theme = 'space';
+    this.spaceRoot = new THREE.Group();
+    scene.add(this.spaceRoot);
     this.towers = [];
     this.hitTime = new Float32Array([-99, -99, -99, -99]);
     this.hitPow = new Float32Array([0, 0, 0, 0]);
@@ -46,7 +50,7 @@ export class World {
     this.buildSky();
     this.buildPlanet();
     this.buildGround();
-    this.buildCity();
+    this.buildDistantCity();
     this.buildHorizon();
     this.buildPlatform();
     this.buildCore();
@@ -54,6 +58,8 @@ export class World {
     this.buildShield();
     this.buildOrbitals();
     this.buildConduits();
+    this.buildCityTheme();
+    this.setTheme('space');
   }
 
   /* ------------------------------------------------------------------ sky */
@@ -65,7 +71,7 @@ export class World {
       }),
     );
     sky.renderOrder = -20;
-    this.scene.add(sky);
+    this.spaceRoot.add(sky);
 
     const count = 2400;
     const pos = new Float32Array(count * 3);
@@ -115,7 +121,7 @@ export class World {
       `,
     });
     this.stars = new THREE.Points(geo, this.starMat);
-    this.scene.add(this.stars);
+    this.spaceRoot.add(this.stars);
   }
 
   /* ---------------------------------------------------------------- planet */
@@ -123,7 +129,7 @@ export class World {
     const g = new THREE.Group();
     g.position.set(-440, 62, -334);
     g.rotation.set(0.28, 0.55, -0.16);
-    this.scene.add(g);
+    this.spaceRoot.add(g);
     this.planetGroup = g;
     g.scale.setScalar(0.52);
 
@@ -190,12 +196,12 @@ export class World {
     const ground = new THREE.Mesh(new THREE.CircleGeometry(280, 160), groundMat);
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.8;
-    this.scene.add(ground);
+    this.spaceRoot.add(ground);
     this.groundMat = groundMat;
   }
 
   /* ---------------------------------------------------------------- city */
-  buildCity() {
+  buildDistantCity() {
     // Distant megacity: a band of lights and a few silhouettes — readable as scale,
     // without competing with the defence ring in the foreground.
     const pos = [];
@@ -220,7 +226,7 @@ export class World {
       sizeAttenuation: true,
     }));
     lights.frustumCulled = false;
-    this.scene.add(lights);
+    this.spaceRoot.add(lights);
 
     // antenna masts with aircraft-warning lights
     for (let i = 0; i < 9; i++) {
@@ -232,14 +238,14 @@ export class World {
         new THREE.MeshBasicMaterial({ color: 0x0a2130 }),
       );
       mast.position.set(Math.cos(a) * r, h / 2 - 0.7, Math.sin(a) * r);
-      this.scene.add(mast);
+      this.spaceRoot.add(mast);
       const beacon = new THREE.Sprite(new THREE.SpriteMaterial({
         map: this.glowTex, color: 0xff3048, transparent: true,
         blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.75,
       }));
       beacon.position.set(Math.cos(a) * r, h - 0.4, Math.sin(a) * r);
       beacon.scale.setScalar(1.8);
-      this.scene.add(beacon);
+      this.spaceRoot.add(beacon);
     }
   }
 
@@ -270,7 +276,7 @@ export class World {
     });
     const cyl = new THREE.Mesh(new THREE.CylinderGeometry(238, 238, 70, 72, 1, true), mat);
     cyl.position.y = 34;
-    this.scene.add(cyl);
+    this.spaceRoot.add(cyl);
   }
 
   /* ------------------------------------------------------------- platform */
@@ -912,7 +918,7 @@ export class World {
       );
       ring.rotation.x = Math.PI / 2 + (i ? 0.08 : -0.04);
       ring.position.y = 2 + i * 1.2;
-      this.scene.add(ring);
+      this.spaceRoot.add(ring);
       this.orbitals.push(ring);
     }
   }
@@ -961,6 +967,34 @@ export class World {
       }
       c.pts.geometry.attributes.position.needsUpdate = true;
     }
+  }
+
+  /* -------------------------------------------------------------- themes */
+  buildCityTheme() {
+    this.city = new CityTheme(this.scene, {
+      nodes: NODES,
+      ringRadius: RING_RADIUS,
+      glowTex: this.glowTex,
+      beamTex: this.beamTex,
+    });
+  }
+
+  setTheme(mode) {
+    const city = mode === 'city';
+    this.theme = mode;
+    if (this.spaceRoot) this.spaceRoot.visible = !city;
+    if (this.city) this.city.setVisible(city);
+
+    if (this.scene.fog) {
+      this.scene.fog.color.set(city ? 0x0a0614 : 0x03070f);
+      this.scene.fog.density = city ? 0.0058 : 0.0042;
+    }
+    if (this.shieldMat) this.shieldMat.uniforms.uColor.value.set(city ? 0xffb347 : 0x59e8ff);
+    if (this.shieldBase) this.shieldBase.material.color.set(city ? 0xffb347 : 0x6beeff);
+    if (this.coreHalo) this.coreHalo.material.color.set(city ? 0xff7ad9 : 0x4fe6ff);
+    if (this.coreSpark) this.coreSpark.material.color.set(city ? 0xffd6f4 : 0xaefaff);
+    if (this.pillar) this.pillar.material.color.set(city ? 0xff5ec8 : 0x5ef2ff);
+    if (this.coreBeam) this.coreBeam.material.color.set(city ? 0xff5ec8 : 0x6beeff);
   }
 
   /* ------------------------------------------------------------------ api */
@@ -1096,6 +1130,7 @@ export class World {
       this.shieldBase.scale.setScalar(1 + Math.sin(t * 1.3) * 0.004);
     }
     this.updateConduits(t);
+    if (this.theme === 'city' && this.city) this.city.update(t, dt);
   }
 
   getTowerTop(i, out = new THREE.Vector3()) {

@@ -159,19 +159,74 @@ export class TelemetryAdapter {
 
 ---
 
-## 6. 多屏同步
+## 6. 多屏同步（指挥席 + 大厅）
 
-指挥席与大厅大屏需要一致时，推荐服务端扇出同一份 `sim` 快照（1 Hz）+ 事件流。前端可用 `BroadcastChannel` 做同机多标签同步：
+本项目已内置双屏：`dist/index.html`（大厅）与 `dist/console.html`（指挥席）。同步实现位于 `src/sync.js`，按环境自动选择通道：
 
-```js
-const bc = new BroadcastChannel('atlas-drill');
-sim.on('phase', (p) => bc.postMessage({ type: 'phase', p }));
-bc.onmessage = ({ data }) => {
-  if (data.type === 'phase') sim.setPhase(data.p);
-};
+| 环境 | 通道 | 说明 |
+|---|---|---|
+| `npm run dev` / 局域网 IP | **SSE 中继** | `server.mjs` 提供 `/api/sync/events` + `/api/sync/publish`，跨设备可用 |
+| GitHub Pages / 同源静态站 | **BroadcastChannel** | 同浏览器多标签，无需服务端 |
+| `file://` / 无 BroadcastChannel | **localStorage** | 最后兜底，同机同源有效 |
+
+### 6.1 消息契约
+
+大厅以 4 Hz 广播状态：
+
+```json
+{
+  "type": "state",
+  "from": "hall-xxxx",
+  "state": {
+    "phase": 1, "running": true, "paused": false, "complete": false,
+    "totalT": 18.2, "phaseT": 18.2, "duration": 34,
+    "theme": "city", "cinematic": false, "muted": false, "blackout": false,
+    "metrics": { "qps": 145000, "intercept": 99.97, "latency": 21, "rto": 0, "rpo": 0,
+                 "shield": 96, "score": 20800, "combo": 12, "blocked": 320, "bossHP": 100 },
+    "nodes": [{ "id": "GW-01", "role": "接入网关", "load": 78, "latency": 18, "status": "online" }],
+    "logs": [{ "time": "00:00:18", "text": "WAF 集群自动扩容 40 → 120 节点", "kind": "ok" }]
+  }
+}
 ```
 
-跨机房建议用 WebSocket + 服务端权威时钟；所有动画使用**本地插值**，不要依赖每帧网络包。
+指挥席发送命令：
+
+```json
+{ "type": "cmd", "action": "theme" }
+{ "type": "cmd", "action": "jump", "value": 2 }
+```
+
+| action | 作用 |
+|---|---|
+| `start` / `next` | 启动 / 推进 |
+| `pause` | 暂停 / 继续 |
+| `restart` | 重新演练 |
+| `theme` | 切换星港 / 赛博都市 |
+| `cinematic` | 电影模式 |
+| `mute` | 大厅静音 |
+| `blackout` | 大厅黑屏 / 恢复 |
+| `hud` | HUD 开关 |
+| `jump` | 跳转 `value: 1/2/3` |
+
+### 6.2 跨设备部署
+
+```bash
+npm run dev
+# ATLAS preview:    http://127.0.0.1:5178/
+# ATLAS console:    http://127.0.0.1:5178/console
+# LAN (multi-screen): http://192.168.x.x:5178/
+```
+
+- 默认 `HOST=0.0.0.0` 监听局域网，可用 `HOST=127.0.0.1 PORT=5178` 限制。
+- 中继无鉴权，仅适合内网/彩排；生产环境应在反向代理层加身份认证与 TLS。
+- 跨机房建议用 WebSocket + 服务端权威时钟；所有动画使用**本地插值**，不要依赖每帧网络包。
+- 同一浏览器做页面演示时，直接打开两个标签页即可（BroadcastChannel）。
+
+### 6.3 接入真实编排引擎时
+
+- 指挥席只发送命令，不直接改 `sim`；所有变更由大厅执行后广播状态，保证单一事实源。
+- 如果接入真实编排引擎，命令应转发给编排引擎 API，再以引擎回执更新 `sim`，避免“大屏状态”与“真实演练”分叉。
+- 状态快照建议保持在 1–4 Hz；日志只带最近 8 条，避免消息过大。
 
 ---
 

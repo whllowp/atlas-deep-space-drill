@@ -38,6 +38,16 @@ const fs = require('fs');
   await page.waitForTimeout(3000);
   await snap('result.jpg');
 
+  await page.reload({ waitUntil: 'load' });
+  await page.waitForTimeout(2200);
+  await page.evaluate(() => window.__demo.applyTheme('city', { instant: true }));
+  await page.waitForTimeout(1600);
+  await snap('city.jpg');
+
+  await page.evaluate(() => window.__demo.setCinematic(true));
+  await page.waitForTimeout(1600);
+  await snap('cinematic.jpg');
+
   console.log('captured; errors:', errors.length ? errors : 'none');
   await browser.close();
 })();

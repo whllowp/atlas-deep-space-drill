@@ -138,6 +138,19 @@ html, body {
   letter-spacing: 0.22em;
   color: var(--txt-dim);
 }
+.theme-chip {
+  display: inline-block;
+  margin-left: 0.8em;
+  padding: 0.12em 0.55em;
+  border: 1px solid rgba(94, 242, 255, 0.35);
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 0.92em;
+  letter-spacing: 0.16em;
+  background: rgba(20, 80, 100, 0.18);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 0.35em), calc(100% - 0.35em) 100%, 0 100%);
+  transition: 0.4s ease;
+}
 
 .phases {
   position: relative;
@@ -935,6 +948,142 @@ html, body {
   letter-spacing: 0.3em;
   color: rgba(94, 242, 255, 0.3);
 }
+
+/* ---------------------------------------------------------------- THEME */
+body.theme-city .hud-tint {
+  background:
+    radial-gradient(120% 90% at 50% 110%, rgba(100, 18, 64, 0.32), transparent 62%),
+    radial-gradient(80% 60% at 50% 0%, rgba(56, 18, 96, 0.22), transparent 70%);
+}
+body.theme-city .brand-title span { color: #ff8ad9; }
+body.theme-city .theme-chip {
+  color: #ff9ad6;
+  border-color: rgba(255, 94, 200, 0.5);
+  background: rgba(100, 20, 70, 0.22);
+  box-shadow: 0 0 16px rgba(255, 46, 136, 0.18);
+}
+body.theme-city .panel > header {
+  background: linear-gradient(90deg, rgba(100, 20, 70, 0.22), transparent 80%);
+}
+body.theme-city .panel > header .tick {
+  background: #ff5ec8;
+  box-shadow: 0 0 9px #ff5ec8;
+}
+body.theme-city .announce .a-kicker { color: #ff5ec8; }
+body.theme-city .hero-num b { text-shadow: 0 0 26px rgba(255, 94, 200, 0.35); }
+
+.theme-wipe {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: #02040a;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.24s ease, visibility 0.24s;
+}
+.theme-wipe.on { opacity: 1; visibility: visible; }
+.theme-wipe .tw-scan {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), var(--magenta), transparent);
+  box-shadow: 0 0 22px rgba(94, 242, 255, 0.8);
+  animation: wipe-scan 0.9s linear infinite;
+}
+.theme-wipe .tw-text {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.5em;
+  color: var(--cyan);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.theme-wipe.on .tw-text { opacity: 0.8; }
+@keyframes wipe-scan {
+  from { transform: translateY(0); }
+  to { transform: translateY(100vh); }
+}
+
+/* -------------------------------------------------------------- CINEMATIC */
+.letterbox {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 0;
+  background: #000;
+  z-index: 40;
+  pointer-events: none;
+  transition: height 0.85s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+.letterbox.top { top: 0; }
+.letterbox.bottom { bottom: 0; }
+body.cinematic .letterbox { height: 7.6vh; }
+body.cinematic .hud { opacity: 0; pointer-events: none; }
+
+.cine-hud {
+  position: fixed;
+  left: 2.4em;
+  right: 2.4em;
+  bottom: calc(7.6vh + 1.1em);
+  z-index: 41;
+  display: flex;
+  align-items: center;
+  gap: 1.6em;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  color: rgba(200, 240, 255, 0.72);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+}
+body.cinematic .cine-hud { opacity: 1; }
+.cine-hud .rec {
+  color: var(--red);
+  text-shadow: 0 0 10px rgba(255, 59, 78, 0.8);
+  animation: blink 1.6s steps(1) infinite;
+}
+.cine-hud #cineTitle { color: var(--cyan); letter-spacing: 0.3em; }
+.cine-hud .cine-mark { margin-left: auto; color: rgba(200, 240, 255, 0.4); }
+.icon-btn.active {
+  color: #fff;
+  border-color: rgba(255, 94, 200, 0.7);
+  background: rgba(90, 20, 60, 0.65);
+  box-shadow: 0 0 18px rgba(255, 46, 136, 0.25);
+}
+
+.blackout {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 1em;
+  background: #000;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.5s ease, visibility 0.5s;
+}
+.blackout.on { opacity: 1; visibility: visible; }
+.bo-mark {
+  font-family: var(--mono);
+  font-size: clamp(24px, 3vw, 48px);
+  letter-spacing: 0.6em;
+  color: rgba(94, 242, 255, 0.35);
+  padding-left: 0.6em;
+}
+.bo-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.4em;
+  color: rgba(94, 242, 255, 0.18);
+}
+body.cinematic #labels { opacity: 0; transition: opacity 0.5s ease; }
 
 /* -------------------------------------------------------------- RESPONSIVE */
 @media (max-width: 1500px) {

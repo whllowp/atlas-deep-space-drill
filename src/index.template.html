@@ -34,7 +34,7 @@
         </div>
         <div class="brand-text">
           <div class="brand-title">ATLAS <span>// 深空防线</span></div>
-          <div class="brand-sub">GAMIFIED SRE DRILL · 游戏化运维演练指挥舱</div>
+          <div class="brand-sub">GAMIFIED SRE DRILL · 游戏化运维演练指挥舱 <span class="theme-chip" id="themeChip">DEEP SPACE</span></div>
         </div>
       </div>
 
@@ -64,6 +64,9 @@
           <b id="runState" class="ok">待命</b>
         </div>
         <div class="top-actions">
+          <button class="icon-btn" id="btnConsole" title="打开指挥席"><span>▤</span></button>
+          <button class="icon-btn" id="btnTheme" title="切换场景 (T)"><span>◐</span></button>
+          <button class="icon-btn" id="btnCine" title="电影模式 (C)"><span>▣</span></button>
           <button class="icon-btn" id="btnSound" title="音效 (M)"><span>♪</span></button>
           <button class="icon-btn" id="btnHud" title="隐藏 HUD (H)"><span>◫</span></button>
           <button class="icon-btn" id="btnFull" title="全屏 (F)"><span>⛶</span></button>
@@ -159,7 +162,7 @@
       <div class="actionbar" id="actionbar">
         <button class="btn primary" id="btnStart"><span class="b-ico">▶</span> 启动演练 <kbd>SPACE</kbd></button>
         <button class="btn ghost" id="btnNext"><span class="b-ico">Ⅱ</span> 暂停演练 <kbd>P</kbd></button>
-        <div class="hint" id="hint">空格 启动 / 推进 · 拖拽旋转 · 滚轮缩放 · <kbd>H</kbd> 隐藏 HUD</div>
+        <div class="hint" id="hint">空格 启动 / 推进 · 拖拽旋转 · <kbd>T</kbd> 场景 · <kbd>C</kbd> 电影 · <kbd>H</kbd> HUD</div>
       </div>
 
       <div class="coords">
@@ -196,6 +199,25 @@
 
     <div class="flash" id="flash"></div>
     <div class="damage" id="damage"></div>
+  </div>
+
+  <div class="theme-wipe" id="themeWipe">
+    <div class="tw-scan"></div>
+    <div class="tw-text">切换场景 // SWITCHING THEME</div>
+  </div>
+
+  <div class="letterbox top"></div>
+  <div class="letterbox bottom"></div>
+  <div class="cine-hud" id="cineHud">
+    <span class="rec">● REC</span>
+    <span id="cineTime">00:00:00</span>
+    <span id="cineTitle">ATLAS // DEEP SPACE</span>
+    <span class="cine-mark">2.39 : 1</span>
+  </div>
+
+  <div class="blackout" id="blackout">
+    <div class="bo-mark">ATLAS</div>
+    <div class="bo-sub">SIGNAL STANDBY · 大厅待机</div>
   </div>
 
   <div class="boot" id="boot">

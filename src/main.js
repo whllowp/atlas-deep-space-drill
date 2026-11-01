@@ -6,11 +6,14 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 
-import { Sim } from './sim.js';
+import { Sim, formatClock, PHASES } from './sim.js';
 import { World } from './world.js';
 import { Game } from './game.js';
 import { HUD } from './hud.js';
 import { AudioEngine } from './audio.js';
+import { SyncBus } from './sync.js';
+
+const params = new URLSearchParams(location.search);
 
 /* ------------------------------------------------------------ renderer */
 const canvas = document.getElementById('stage');
@@ -39,6 +42,7 @@ const ScreenFX = {
     tDiffuse: { value: null },
     uTime: { value: 0 },
     uWarn: { value: 0 },
+    uCine: { value: 0 },
     uRes: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
   },
   vertexShader: /* glsl */`
@@ -52,6 +56,7 @@ const ScreenFX = {
     uniform sampler2D tDiffuse;
     uniform float uTime;
     uniform float uWarn;
+    uniform float uCine;
     uniform vec2 uRes;
     varying vec2 vUv;
 
@@ -74,6 +79,16 @@ const ScreenFX = {
       col *= 1.0 - 0.026 * scan;
       float grain = fract(sin(dot(uv * uRes + uTime * 31.0, vec2(12.9898, 78.233))) * 43758.5453);
       col += (grain - 0.5) * 0.016;
+
+      if (uCine > 0.01) {
+        float l = dot(col, vec3(0.299, 0.587, 0.114));
+        col = mix(vec3(l), col, 1.10);
+        col *= vec3(1.035, 1.0, 1.045);
+        col += vec3(0.0, 0.012, 0.024) * (1.0 - smoothstep(0.0, 0.55, l));
+        float cv = smoothstep(0.22, 0.82, length(c));
+        col *= mix(1.0, 0.78, cv * uCine);
+        col += (grain - 0.5) * 0.018 * uCine;
+      }
 
       gl_FragColor = vec4(max(col, 0.0), 1.0);
     }
@@ -110,6 +125,12 @@ const game = new Game({ scene, camera, renderer, world, sim, audio, hud });
 hud.resetView();
 window.__demo = { sim, game, world, hud, audio, renderer, scene, camera, composer };
 
+const recentLogs = [];
+sim.on('log', (d) => {
+  recentLogs.push(d);
+  if (recentLogs.length > 30) recentLogs.shift();
+});
+
 sim.log('ATLAS 防御网格自检完成 · 6/6 节点在线', 'ok');
 sim.log('演练剧本 DRILL-2077 已装载，等待指挥员授权', 'info');
 sim.log('提示：拖拽旋转视角 / 空格启动演练', 'info');
@@ -117,14 +138,73 @@ hud.showSubtitle({ text: '深空防线已就绪 · 按空格启动演练', dur: 
 
 /* --------------------------------------------------------------------- ui */
 let muted = false;
+let theme = 'space';
+let cinematic = false;
+let blackout = false;
+
+function setBlackout(v) {
+  blackout = !!v;
+  document.getElementById('blackout')?.classList.toggle('on', blackout);
+  sim.log(`大厅${blackout ? '进入待机黑屏' : '恢复画面'}`, 'info');
+}
+
+function applyLook() {
+  renderer.toneMappingExposure = cinematic ? 1.08 : (theme === 'city' ? 1.24 : 1.18);
+  bloom.strength = cinematic ? 0.92 : (theme === 'city' ? 0.88 : 0.72);
+  bloom.threshold = cinematic ? 0.58 : (theme === 'city' ? 0.62 : 0.72);
+  screenFX.uniforms.uCine.value = cinematic ? 1 : 0;
+}
+
+function setCinematic(v) {
+  cinematic = !!v;
+  document.body.classList.toggle('cinematic', cinematic);
+  document.getElementById('btnCine')?.classList.toggle('active', cinematic);
+  game.setCinematic(cinematic);
+  applyLook();
+  const title = document.getElementById('cineTitle');
+  if (title) title.textContent = theme === 'city' ? 'ATLAS // NEO-SHANGHAI' : 'ATLAS // DEEP SPACE';
+  sim.log(`电影模式 ${cinematic ? '开启' : '关闭'}`, 'info');
+}
 
 async function ensureAudio() {
   await audio.resume();
   audio.setMuted(muted);
 }
 
+function applyTheme(mode, { instant = false } = {}) {
+  if (mode !== 'city' && mode !== 'space') return;
+  if (theme === mode && !instant) return;
+  const commit = () => {
+    theme = mode;
+    world.setTheme(mode);
+    game.setTheme(mode);
+    hud.setTheme(mode);
+    applyLook();
+    const cineTitle = document.getElementById('cineTitle');
+    if (cineTitle) cineTitle.textContent = mode === 'city' ? 'ATLAS // NEO-SHANGHAI' : 'ATLAS // DEEP SPACE';
+    try { localStorage.setItem('atlas-theme', mode); } catch { /* ignore */ }
+    if (!instant) {
+      sim.log(`场景切换：${mode === 'city' ? '赛博都市 · NEO-SHANGHAI' : '深空防线 · DEEP SPACE'}`, 'info');
+    }
+  };
+  if (instant) {
+    commit();
+    return;
+  }
+  const wipe = document.getElementById('themeWipe');
+  wipe?.classList.add('on');
+  setTimeout(() => {
+    commit();
+    setTimeout(() => wipe?.classList.remove('on'), 320);
+  }, 300);
+}
+
 async function act(action) {
-  await ensureAudio();
+  if (action === 'console') {
+    window.open('./console.html?sync=1', 'atlas-console', 'width=1600,height=900');
+    return;
+  }
+  ensureAudio();
   audio.ui();
   if (action === 'start' || action === 'next') {
     if (sim.state.complete) sim.restart();
@@ -134,6 +214,10 @@ async function act(action) {
     sim.restart();
   } else if (action === 'pause') {
     sim.togglePause();
+  } else if (action === 'theme') {
+    applyTheme(theme === 'space' ? 'city' : 'space');
+  } else if (action === 'cinematic') {
+    setCinematic(!cinematic);
   } else if (action === 'sound') {
     muted = !muted;
     audio.setMuted(muted);
@@ -162,6 +246,12 @@ window.addEventListener('keydown', (e) => {
     act('fullscreen');
   } else if (e.key === 'h' || e.key === 'H') {
     act('hud');
+  } else if (e.key === 't' || e.key === 'T') {
+    act('theme');
+  } else if (e.key === 'c' || e.key === 'C') {
+    act('cinematic');
+  } else if (e.key === 'b' || e.key === 'B') {
+    setBlackout(!blackout);
   } else if (e.key === 'r' || e.key === 'R') {
     act('restart');
   } else if (e.key === 'p' || e.key === 'P') {
@@ -181,6 +271,62 @@ sim.on('reset', () => {
   hud.setPhase(0);
 });
 
+/* ------------------------------------------------------------------ sync */
+const sync = new SyncBus('hall');
+
+function snapshot() {
+  const s = sim.state;
+  const m = s.metrics;
+  return {
+    phase: s.phase,
+    running: s.running,
+    paused: s.paused,
+    complete: s.complete,
+    totalT: s.totalT,
+    phaseT: s.phaseT,
+    duration: PHASES[s.phase] ? PHASES[s.phase].dur : 0,
+    theme,
+    cinematic,
+    muted,
+    blackout,
+    metrics: {
+      qps: m.qps, intercept: m.intercept, latency: m.latency, rto: m.rto, rpo: m.rpo,
+      shield: m.shield, score: m.score, combo: m.combo, blocked: m.blocked, bossHP: m.bossHP,
+    },
+    nodes: s.nodes.map((n) => ({
+      id: n.id, role: n.role, load: n.load, latency: n.latency, status: n.status,
+    })),
+    logs: recentLogs.slice(-8).map((l) => ({ time: l.time, text: l.text, kind: l.kind })),
+  };
+}
+
+async function handleCommand(msg) {
+  const action = msg.action;
+  if (!action) return;
+  if (action === 'jump') {
+    window.__demo.skipTo(Number(msg.value) || 1, Number(msg.value) === 2 ? 6 : 8);
+    return;
+  }
+  if (action === 'blackout') {
+    setBlackout(!blackout);
+    return;
+  }
+  if (action === 'mute') {
+    await act('sound');
+    return;
+  }
+  await act(action);
+}
+
+sync.on('cmd', (msg) => { handleCommand(msg).catch(() => {}); });
+sync.on('hello', () => sync.send({ type: 'state', state: snapshot() }));
+sync.init().then((mode) => {
+  sim.log(`双屏同步通道：${mode === 'sse' ? '局域网 SSE 中继' : mode === 'broadcast' ? '本机 BroadcastChannel' : 'localStorage 回退'}`, 'info');
+});
+window.__demo.sync = sync;
+window.__demo.snapshot = snapshot;
+window.__demo.setBlackout = setBlackout;
+
 /* --------------------------------------------------------------- node sync */
 const lastNodeStatus = new Array(6).fill('');
 function syncNodes() {
@@ -198,6 +344,7 @@ const clock = new THREE.Clock();
 let elapsed = 0;
 let fpsEMA = 60;
 let fpsAcc = 0;
+let syncAcc = 0;
 let booted = false;
 
 function resize() {
@@ -222,6 +369,12 @@ function frame() {
   hud.update(dt);
   syncNodes();
 
+  syncAcc += dt;
+  if (syncAcc >= 0.25) {
+    syncAcc = 0;
+    sync.send({ type: 'state', state: snapshot() });
+  }
+
   screenFX.uniforms.uTime.value = elapsed;
   screenFX.uniforms.uWarn.value += (sim.state.threat * 0.85 - screenFX.uniforms.uWarn.value) * Math.min(1, dt * 2.2);
 
@@ -232,6 +385,10 @@ function frame() {
   fpsAcc += dt;
   if (fpsAcc > 0.4) {
     hud.setFps(fpsEMA);
+    if (cinematic) {
+      const el = document.getElementById('cineTime');
+      if (el) el.textContent = formatClock(sim.state.totalT);
+    }
     fpsAcc = 0;
   }
 
@@ -244,13 +401,24 @@ function frame() {
 frame();
 
 /* ------------------------------------------------------------------- debug */
-const params = new URLSearchParams(location.search);
 if (params.get('hud') === '0' || params.get('nohud') === '1') {
   document.getElementById('hud').classList.add('hidden');
 }
 if (params.get('auto') === '1') {
   setTimeout(() => { if (!sim.state.running) act('start').catch(() => {}); }, 2500);
 }
+
+let savedTheme = 'space';
+try { savedTheme = localStorage.getItem('atlas-theme') || 'space'; } catch { /* ignore */ }
+applyTheme(
+  params.get('theme') === 'city' || (!params.get('theme') && savedTheme === 'city') ? 'city' : 'space',
+  { instant: true },
+);
+window.__demo.applyTheme = applyTheme;
+window.__demo.getTheme = () => theme;
+window.__demo.setCinematic = setCinematic;
+window.__demo.getCinematic = () => cinematic;
+if (params.get('cine') === '1') setCinematic(true);
 
 window.__demo.skipTo = (phase, t = 4) => {
   sim.reset();

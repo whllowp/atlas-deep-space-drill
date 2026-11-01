@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjMDEwNDA5Ii8+PHBhdGggZD0iTTMyIDUgNTUgMTh2MjhMMzIgNTkgOSA0NlYxOFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzVlZjJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTMyIDE3IDQ0IDM1SDIwWiIgZmlsbD0iIzVlZjJmZiIvPjwvc3ZnPg==" />
+  <title>ATLAS // 指挥席 · CONTROL DECK</title>
+  <style>/*__CSS__*/</style>
+</head>
+<body class="console-body">
+  <div class="c-bg"></div>
+
+  <div class="c-shell">
+    <header class="c-head">
+      <div class="c-brand">
+        <div class="c-logo">
+          <svg viewBox="0 0 48 48" aria-hidden="true">
+            <path d="M24 3 L43 14 V34 L24 45 L5 34 V14 Z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M24 16 L30 27 H18 Z" fill="currentColor"/>
+            <circle cx="24" cy="24" r="19" fill="none" stroke="currentColor" stroke-width=".6" stroke-dasharray="2 6" opacity=".7"/>
+          </svg>
+        </div>
+        <div>
+          <h1>ATLAS <span>// 指挥席</span></h1>
+          <p>DRILL CONTROL DECK · 演练指挥终端</p>
+        </div>
+      </div>
+
+      <div class="c-link" id="cLink">
+        <i class="dot"></i>
+        <span id="linkText">正在连接大厅…</span>
+        <em id="linkMode">INIT</em>
+      </div>
+
+      <div class="c-clock">
+        <label>演练计时</label>
+        <b id="cClock">00:00:00</b>
+      </div>
+    </header>
+
+    <main class="c-grid">
+      <section class="c-card hero">
+        <div class="hero-top">
+          <span class="c-kicker">CURRENT PHASE</span>
+          <span class="c-state" id="cState">STANDBY</span>
+        </div>
+        <h2 id="cPhase">P0 · 静默值守</h2>
+        <div class="hero-sub">
+          <span id="cTheme">DEEP SPACE</span>
+          <span id="cMode">NORMAL VIEW</span>
+          <span id="cSyncState">SYNC —</span>
+        </div>
+        <div class="c-progress"><i id="cProgress"></i></div>
+
+        <div class="phase-strip" id="cPhases">
+          <div data-p="1"><b>P1</b><span>红蓝对抗</span><em>DDoS 洪峰</em></div>
+          <div data-p="2"><b>P2</b><span>故障注入</span><em>核心库宕机</em></div>
+          <div data-p="3"><b>P3</b><span>BOSS 决战</span><em>APT 总攻</em></div>
+        </div>
+
+        <div class="kpis">
+          <div><label>攻击流量</label><b><span id="cQps">8.2</span><small>K QPS</small></b></div>
+          <div><label>拦截率</label><b><span id="cIntercept">99.99</span><small>%</small></b></div>
+          <div><label>平均延迟</label><b><span id="cLatency">12</span><small>ms</small></b></div>
+          <div><label>护盾完整度</label><b><span id="cShield">100</span><small>%</small></b></div>
+          <div><label>RTO 恢复</label><b><span id="cRto">—</span><small>s</small></b></div>
+          <div><label>RPO 丢失</label><b><span id="cRpo">0</span><small>s</small></b></div>
+        </div>
+
+        <div class="score-row">
+          <span>SCORE <b id="cScore">0</b></span>
+          <span>COMBO <b id="cCombo">×1</b></span>
+          <span>BOSS <b id="cBoss">—</b></span>
+          <span>BLOCKED <b id="cBlocked">0</b></span>
+        </div>
+      </section>
+
+      <section class="c-card nodes">
+        <header><span class="tick"></span>节点矩阵 <em>NODE MATRIX</em><span id="cAlive">6 / 6</span></header>
+        <div id="cNodes"></div>
+      </section>
+
+      <section class="c-card controls">
+        <header><span class="tick"></span>演指控台 <em>DIRECTOR</em></header>
+        <div class="btn-grid">
+          <button class="c-btn primary" data-cmd="start"><b>▶</b><span>启动 / 推进</span><small>SPACE</small></button>
+          <button class="c-btn" data-cmd="pause"><b>Ⅱ</b><span>暂停 / 继续</span><small>P</small></button>
+          <button class="c-btn" data-cmd="restart"><b>↻</b><span>重新演练</span><small>R</small></button>
+          <button class="c-btn" data-cmd="theme"><b>◐</b><span>切换场景</span><small>T</small></button>
+          <button class="c-btn" data-cmd="cinematic"><b>▣</b><span>电影模式</span><small>C</small></button>
+          <button class="c-btn" data-cmd="mute"><b>♪</b><span>静音大厅</span><small>M</small></button>
+          <button class="c-btn danger" data-cmd="blackout"><b>▌</b><span>大厅黑屏</span><small>B</small></button>
+          <button class="c-btn" data-cmd="hud"><b>◫</b><span>HUD 开关</span><small>H</small></button>
+        </div>
+        <div class="jump-row">
+          <span>JUMP TO</span>
+          <button data-cmd="jump1">P1</button>
+          <button data-cmd="jump2">P2</button>
+          <button data-cmd="jump3">P3</button>
+        </div>
+      </section>
+
+      <section class="c-card logcard">
+        <header><span class="live"></span>事件流 <em>EVENT STREAM</em></header>
+        <div id="cLog"></div>
+      </section>
+
+      <section class="c-card help">
+        <b>双屏部署</b>
+        <p>同一浏览器：大厅 + 指挥席，BroadcastChannel 自动同步。</p>
+        <p>跨设备：<code>npm run dev</code>，两台设备访问局域网地址。</p>
+        <a href="./index.html?sync=1" target="_blank" class="c-btn primary link">打开大厅大屏 ↗</a>
+      </section>
+    </main>
+
+    <footer class="c-foot">
+      <span>ATLAS // DRILL-2077 · COMMAND DECK</span>
+      <span id="cSync">SYNC: —</span>
+    </footer>
+  </div>
+
+  <script>/*__JS__*/</script>
+</body>
+</html>
