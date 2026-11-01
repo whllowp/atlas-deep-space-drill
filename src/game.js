@@ -944,6 +944,12 @@ export class Game {
     );
 
     this.shake *= Math.exp(-dt * 4.2);
+    if (this.cinematic && this.shake < 0.12) {
+      const t = this.time;
+      cp.x += Math.sin(t * 0.63) * 0.12 + Math.sin(t * 1.71) * 0.05;
+      cp.y += Math.cos(t * 0.71) * 0.09;
+      cp.z += Math.sin(t * 0.47) * 0.08;
+    }
     if (this.shake > 0.01) {
       const s = this.shake;
       cp.x += (Math.random() - 0.5) * s * 0.45;
@@ -953,6 +959,7 @@ export class Game {
 
     this.camera.position.lerp(cp, 1 - Math.exp(-dt * 12));
     this.camera.lookAt(c.target);
+    if (this.cinematic) this.camera.rotateZ(Math.sin(this.time * 0.37) * 0.004);
     if (Math.abs(this.camera.fov - c.fov) > 0.01) {
       this.camera.fov = c.fov;
       this.camera.updateProjectionMatrix();

@@ -25,6 +25,8 @@ export class CityTheme {
     this.buildSkyline();
     this.buildBase();
     this.buildStreets();
+    this.buildWetDeck();
+    this.buildLowFog();
     this.buildBillboards();
     this.buildRain();
     this.buildSearchlights();
@@ -365,9 +367,84 @@ export class CityTheme {
     this.group.add(this.carPoints);
   }
 
+  /* ------------------------------------------------------------ wet deck */
+  buildWetDeck() {
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { uTime: { value: 0 } },
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      vertexShader: /* glsl */`
+        varying vec2 vP;
+        void main() {
+          vP = position.xy;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */`
+        uniform float uTime;
+        varying vec2 vP;
+        float hash21(vec2 p) {
+          p = fract(p * vec2(127.1, 311.7));
+          p += dot(p, p + 34.23);
+          return fract(p.x * p.y);
+        }
+        void main() {
+          float d = length(vP);
+          vec2 cell = floor(vP / 5.2);
+          vec2 f = fract(vP / 5.2) - 0.5;
+          float seed = hash21(cell);
+          float life = fract(uTime * 0.32 + seed);
+          float ring = smoothstep(0.035, 0.0, abs(length(f) - life * 0.52));
+          ring *= (1.0 - life) * step(0.42, seed);
+
+          vec2 cell2 = floor(vP / 8.5 + 3.1);
+          vec2 f2 = fract(vP / 8.5 + 3.1) - 0.5;
+          float seed2 = hash21(cell2);
+          float life2 = fract(uTime * 0.22 + seed2);
+          float ring2 = smoothstep(0.03, 0.0, abs(length(f2) - life2 * 0.55));
+          ring2 *= (1.0 - life2) * step(0.6, seed2);
+
+          float sheen = smoothstep(25.5, 3.0, d) * 0.035;
+          vec3 tint = mix(vec3(0.10, 0.48, 0.62), vec3(0.72, 0.14, 0.48), hash21(cell + 5.0));
+          float a = (ring * 0.18 + ring2 * 0.12) * smoothstep(26.3, 22.0, d) + sheen;
+          gl_FragColor = vec4(tint, a);
+        }
+      `,
+    });
+    const deck = new THREE.Mesh(new THREE.CircleGeometry(26.3, 96), mat);
+    deck.rotation.x = -Math.PI / 2;
+    deck.position.y = 0.11;
+    this.group.add(deck);
+    this.wetMat = mat;
+  }
+
+  /* ------------------------------------------------------------ low fog */
+  buildLowFog() {
+    this.fogLayers = [];
+    for (let i = 0; i < 4; i++) {
+      const mat = new THREE.MeshBasicMaterial({
+        map: this.glowTex,
+        color: i % 2 ? 0x2a0a3a : 0x0a2a3a,
+        transparent: true,
+        opacity: 0.09 + i * 0.015,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        fog: false,
+      });
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(170, 170), mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.y = -6 - i * 9;
+      mesh.scale.setScalar(0.75 + i * 0.16);
+      this.group.add(mesh);
+      this.fogLayers.push({ mesh, phase: i * 1.7, speed: 0.008 + i * 0.004 });
+    }
+  }
+
   /* ------------------------------------------------------------ billboards */
-  buildBillboards() {
-    this.billboards = [];
+  buildBillboards() {    this.billboards = [];
     const items = [
       { a: 2.35, r: 58, y: 22, w: 14, h: 5.2, title: 'NEO-SHANGHAI', sub: '霓虹不夜城 · 24H 运维', c1: '#5ef2ff', c2: '#ff2e88' },
       { a: 3.35, r: 62, y: 18, w: 12, h: 4.6, title: 'DRILL 2077', sub: 'CYBER RESILIENCE', c1: '#ff2e88', c2: '#9a6bff' },
@@ -529,6 +606,13 @@ export class CityTheme {
     this.time = t;
     if (this.skylineMat) this.skylineMat.uniforms.uTime.value = t;
     if (this.streetMat) this.streetMat.uniforms.uTime.value = t;
+    if (this.wetMat) this.wetMat.uniforms.uTime.value = t;
+    if (this.fogLayers) {
+      for (const f of this.fogLayers) {
+        f.mesh.rotation.z = t * f.speed + f.phase;
+        f.mesh.material.opacity = 0.08 + Math.sin(t * 0.25 + f.phase) * 0.025;
+      }
+    }
 
     // beacons blink
     for (const b of this.beacons) {

@@ -8,9 +8,9 @@
 
 - **双主题**：`DEEP SPACE` 星港防线 / `NEO-SHANGHAI` 雨夜赛博都市，按 `T` 或点击 `◐` 无刷新切换；
 - **双屏**：大厅大屏 + 独立「指挥席」控制台，支持本机 `BroadcastChannel` 与局域网 SSE 中继；
-- **电影模式**：2.39:1 遮幅、电影调色、导演机位轮切、REC 时间码，按 `C` 一键进入。
+- **电影模式**：2.39:1 遮幅、电影调色、景深（DoF）、FXAA、变形宽银幕光晕、导演机位轮切、REC 时间码，按 `C` 一键进入。
 
-基于 Three.js / WebGL 实时渲染；星云、行星、天际线、霓虹、雨、护盾、粒子与音效全部程序化生成。主页面 `dist/index.html` 约 660 KB，控制台 `dist/console.html` 约 26 KB，两者都无外部图片 / 音频依赖。
+基于 Three.js / WebGL 实时渲染；星云、行星、天际线、霓虹、雨、护盾、粒子与音效全部程序化生成。主页面 `dist/index.html` 约 686 KB，控制台 `dist/console.html` 约 28 KB，两者都无外部图片 / 音频依赖。
 
 **在线演示**：<https://whllowp.github.io/atlas-deep-space-drill/>  
 **在线指挥席**：<https://whllowp.github.io/atlas-deep-space-drill/console.html>
@@ -45,9 +45,11 @@
 ![电影模式](docs/cinematic.jpg)
 
 - 2.39:1 遮幅 + 电影调色（提亮高光、青蓝阴影、加强暗角与颗粒）。
+- 深度景深：焦点自动跟随镜头目标，近景塔身与远景天际线虚化；高光带轻微横向变形光晕与 halation。
 - 4 组导演机位每 8.5 秒轮切：低机位广角、核心特写、俯拍三分之四、侧面长焦；阶段事件（P2 故障、P3 Boss）优先接管。
-- HUD 与 3D 节点标签自动隐藏，仅保留左下角 `REC · 时间码 · 场景 · 2.39:1`。
-- URL：`?cine=1`；快捷键 `C`；指挥席可远程切换。
+- 轻微手持漂移与滚转，后期 FXAA 平滑边缘（不使用 MSAA，避免部分驱动天空变黑）。
+- HUD 与 3D 节点标签自动隐藏，仅保留左下角 `REC · 时间码 · 场景 · 阶段 · 2.39:1`。
+- URL：`?cine=1`；快捷键 `C`；指挥席可远程切换；`Q` 临时开关景深。
 
 ---
 
@@ -56,7 +58,7 @@
 1. **直接双击** `dist/index.html`（Chrome / Edge），点击「启动演练」或按 <kbd>Space</kbd>。
 2. 重新构建：`npm install && npm run build`（同时产出 `dist/index.html` 与 `dist/console.html`）。
 3. 本地预览 + 局域网同步：`npm run dev` → <http://127.0.0.1:5178/>，指挥席 <http://127.0.0.1:5178/console>。
-4. 自动演示：`dist/index.html?auto=1`；纯净画面：`?hud=0`；指定主题：`?theme=city`；电影模式：`?cine=1`。
+4. 自动演示：`dist/index.html?auto=1`；纯净画面：`?hud=0`；指定主题：`?theme=city`；电影模式：`?cine=1`；低配机：`?quality=low`（关闭默认景深、限制 DPR）。
 
 > 声音需一次点击/按键后才能启动（浏览器自动播放策略）。多屏跨设备必须通过 `npm run dev` 的 HTTP 服务访问，`file://` 双开不保证同步。
 
@@ -68,6 +70,7 @@
 | `P` | 暂停 / 继续 |
 | `T` | 切换星港 / 赛博都市 |
 | `C` | 电影模式开关 |
+| `Q` | 景深开关（电影模式） |
 | `B` | 大厅黑屏 / 恢复 |
 | 鼠标拖拽 | 自由环视（7 秒后自动回到导演机位） |
 | 滚轮 | 推拉镜头 |
@@ -123,7 +126,8 @@
 ## 5. 技术实现
 
 - **渲染**：Three.js r160 + `EffectComposer`（RenderPass → UnrealBloomPass → ScreenFX → OutputPass）
-- **后处理**：Bloom、暗角、色差、扫描线、胶片颗粒、警报红边、电影调色（`uCine`）
+- **后处理**：Bloom、Bokeh 景深、FXAA、暗角、色差、扫描线、胶片颗粒、警报红边、电影调色（`uCine`）、高光横向光晕与 halation
+- **电影模式**：BokehPass 聚焦镜头目标；FXAA 在 OutputPass 之后做边缘平滑；4 组机位 + 手持漂移；2.39:1 遮幅
 - **双主题**：`spaceRoot` / `CityTheme` 两组场景对象，切换只改可见性、雾、曝光、护盾色，不重建 WebGL
 - **赛博都市**：`InstancedMesh` + 自定义 GLSL（世界坐标窗格、随机亮灯、霓虹接缝、距离雾）；雨幕 `LineSegments`；车流 `Points`；全息广告 CanvasTexture
 - **护盾**：半球网格 + 自定义 GLSL（菲涅尔 + 六边形格 + 4 个命中涟漪槽位）
@@ -221,15 +225,16 @@ ws.onmessage = (ev) => {
 
 ## 8. 性能与验收
 
-- 1920×1080 / DPR 1.75 / Bloom：星港 60–90 FPS，赛博都市 50–60 FPS（headless Chrome + SwiftShader 参考值；真机 GPU 更高）
-- 赛博都市：230 栋楼 = 1 个 instanced draw call；雨 850 线段；车流 260 点；空中车流 90 点
-- 电影模式：额外一次调色/暗角运算，几乎无额外几何开销
+- 1920×1080 / DPR 1.75：普通模式目标 45–60 FPS（真机 GPU；headless SwiftShader 数值不代表真机）
+- 电影模式开启 DoF 会额外渲染一次深度：独显/游戏本无压力；核显可按 `Q` 关闭景深，或使用 `?quality=low`
+- 赛博都市：230 栋楼 = 1 个 instanced draw call；雨 850 线段；车流 260 点；空中车流 90 点；湿地涟漪 96 段圆盘
+- 电影模式：调色/暗角/光晕 + 深度景深；FXAA 替代 MSAA，避免纹理天空在部分驱动上变黑
 - 大屏机建议：Chrome 独占全屏、DPR 锁 1.0–1.5；4K 屏把 DPR 调到 1.0
 - 多屏：`npm run dev` 后两台设备访问局域网地址；同一浏览器可直接 BroadcastChannel
 - 无外部网络请求，断网可运行
 
 **验收路径**：
-1. 打开大厅 → `T` 切换都市 → `C` 进入电影模式 → 退出；
+1. 打开大厅 → `T` 切换都市 → `C` 进入电影模式（景深/光晕/遮幅）→ `Q` 关闭景深 → 退出；
 2. 另开指挥席 → 启动 → 暂停 → 切换场景 → 跳 P2 → 黑屏/恢复；
 3. 跑完整 P1→P2→P3 → S 级战报 → 再次演练。
 

@@ -1047,6 +1047,7 @@ body.cinematic .cine-hud { opacity: 1; }
   animation: blink 1.6s steps(1) infinite;
 }
 .cine-hud #cineTitle { color: var(--cyan); letter-spacing: 0.3em; }
+.cine-hud #cinePhase { color: var(--amber); letter-spacing: 0.22em; }
 .cine-hud .cine-mark { margin-left: auto; color: rgba(200, 240, 255, 0.4); }
 .icon-btn.active {
   color: #fff;

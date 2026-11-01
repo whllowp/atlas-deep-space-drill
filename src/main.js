@@ -4,6 +4,8 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 
 import { Sim, formatClock, PHASES } from './sim.js';
@@ -14,6 +16,7 @@ import { AudioEngine } from './audio.js';
 import { SyncBus } from './sync.js';
 
 const params = new URLSearchParams(location.search);
+const lowQuality = params.get('quality') === 'low';
 
 /* ------------------------------------------------------------ renderer */
 const canvas = document.getElementById('stage');
@@ -23,7 +26,7 @@ const renderer = new THREE.WebGLRenderer({
   powerPreference: 'high-performance',
   stencil: false,
 });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowQuality ? 1.25 : 1.75));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.18;
@@ -81,13 +84,24 @@ const ScreenFX = {
       col += (grain - 0.5) * 0.016;
 
       if (uCine > 0.01) {
+        vec3 streak = vec3(0.0);
+        for (int i = 1; i <= 5; i++) {
+          float o = float(i) * 0.006;
+          streak += texture2D(tDiffuse, uv + vec2(o, 0.0)).rgb;
+          streak += texture2D(tDiffuse, uv - vec2(o, 0.0)).rgb;
+        }
+        float sl = dot(streak, vec3(0.299, 0.587, 0.114));
+        col += vec3(0.32, 0.52, 0.82) * streak * smoothstep(0.9, 1.8, sl) * 0.04 * uCine;
+        float hl = dot(col, vec3(0.299, 0.587, 0.114));
+        col += vec3(0.35, 0.10, 0.05) * pow(max(0.0, hl - 0.5), 2.0) * uCine * 0.22;
+
         float l = dot(col, vec3(0.299, 0.587, 0.114));
         col = mix(vec3(l), col, 1.10);
         col *= vec3(1.035, 1.0, 1.045);
         col += vec3(0.0, 0.012, 0.024) * (1.0 - smoothstep(0.0, 0.55, l));
         float cv = smoothstep(0.22, 0.82, length(c));
         col *= mix(1.0, 0.78, cv * uCine);
-        col += (grain - 0.5) * 0.018 * uCine;
+        col += (grain - 0.5) * 0.014 * uCine;
       }
 
       gl_FragColor = vec4(max(col, 0.0), 1.0);
@@ -96,7 +110,16 @@ const ScreenFX = {
 };
 
 const composer = new EffectComposer(renderer);
+// Keep the composer targets non-multisampled: MSAA targets black out the
+// textured sky dome on some WebGL drivers. FXAA below handles edge smoothing.
 composer.addPass(new RenderPass(scene, camera));
+const bokeh = new BokehPass(scene, camera, {
+  focus: 46,
+  aperture: 0.00032,
+  maxblur: 0.0055,
+});
+bokeh.enabled = false;
+composer.addPass(bokeh);
 const bloom = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
   0.72, 0.5, 0.72,
@@ -105,6 +128,9 @@ composer.addPass(bloom);
 const screenFX = new ShaderPass(ScreenFX);
 composer.addPass(screenFX);
 composer.addPass(new OutputPass());
+const fxaa = new ShaderPass(FXAAShader);
+fxaa.material.uniforms.resolution.value.set(1 / window.innerWidth, 1 / window.innerHeight);
+composer.addPass(fxaa);
 
 /* -------------------------------------------------------------- css2d labels */
 const labelRenderer = new CSS2DRenderer();
@@ -123,7 +149,7 @@ const audio = new AudioEngine();
 const game = new Game({ scene, camera, renderer, world, sim, audio, hud });
 
 hud.resetView();
-window.__demo = { sim, game, world, hud, audio, renderer, scene, camera, composer };
+window.__demo = { sim, game, world, hud, audio, renderer, scene, camera, composer, bloom, bokeh, screenFX, fxaa };
 
 const recentLogs = [];
 sim.on('log', (d) => {
@@ -141,6 +167,13 @@ let muted = false;
 let theme = 'space';
 let cinematic = false;
 let blackout = false;
+let dofEnabled = !lowQuality;
+
+function setDof(v) {
+  dofEnabled = !!v;
+  applyLook();
+  sim.log(`景深 ${dofEnabled ? '开启' : '关闭'}`, 'info');
+}
 
 function setBlackout(v) {
   blackout = !!v;
@@ -153,6 +186,7 @@ function applyLook() {
   bloom.strength = cinematic ? 0.92 : (theme === 'city' ? 0.88 : 0.72);
   bloom.threshold = cinematic ? 0.58 : (theme === 'city' ? 0.62 : 0.72);
   screenFX.uniforms.uCine.value = cinematic ? 1 : 0;
+  bokeh.enabled = cinematic && dofEnabled;
 }
 
 function setCinematic(v) {
@@ -252,6 +286,8 @@ window.addEventListener('keydown', (e) => {
     act('cinematic');
   } else if (e.key === 'b' || e.key === 'B') {
     setBlackout(!blackout);
+  } else if (e.key === 'q' || e.key === 'Q') {
+    setDof(!dofEnabled);
   } else if (e.key === 'r' || e.key === 'R') {
     act('restart');
   } else if (e.key === 'p' || e.key === 'P') {
@@ -356,6 +392,8 @@ function resize() {
   composer.setSize(w, h);
   labelRenderer.setSize(w, h);
   screenFX.uniforms.uRes.value.set(w, h);
+  fxaa.material.uniforms.resolution.value.set(1 / w, 1 / h);
+  bokeh.uniforms.aspect.value = camera.aspect;
 }
 window.addEventListener('resize', resize);
 
@@ -377,6 +415,11 @@ function frame() {
 
   screenFX.uniforms.uTime.value = elapsed;
   screenFX.uniforms.uWarn.value += (sim.state.threat * 0.85 - screenFX.uniforms.uWarn.value) * Math.min(1, dt * 2.2);
+  if (cinematic) {
+    const focusTarget = (sim.state.phase === 3 && game.bossVisible) ? game.boss.position : game.cam.target;
+    bokeh.uniforms.focus.value = camera.position.distanceTo(focusTarget);
+    bokeh.uniforms.aspect.value = camera.aspect;
+  }
 
   composer.render(dt);
   labelRenderer.render(scene, camera);
@@ -388,6 +431,9 @@ function frame() {
     if (cinematic) {
       const el = document.getElementById('cineTime');
       if (el) el.textContent = formatClock(sim.state.totalT);
+      const ph = document.getElementById('cinePhase');
+      const phase = PHASES[sim.state.phase];
+      if (ph && phase) ph.textContent = `${phase.no} · ${phase.name}`;
     }
     fpsAcc = 0;
   }
@@ -418,6 +464,8 @@ window.__demo.applyTheme = applyTheme;
 window.__demo.getTheme = () => theme;
 window.__demo.setCinematic = setCinematic;
 window.__demo.getCinematic = () => cinematic;
+window.__demo.setDof = setDof;
+window.__demo.getDof = () => dofEnabled;
 if (params.get('cine') === '1') setCinematic(true);
 
 window.__demo.skipTo = (phase, t = 4) => {
@@ -453,6 +501,11 @@ window.__demo.advance = (seconds) => {
     syncNodes();
     screenFX.uniforms.uTime.value = elapsed;
     screenFX.uniforms.uWarn.value += (sim.state.threat * 0.85 - screenFX.uniforms.uWarn.value) * Math.min(1, dt * 2.2);
+    if (cinematic) {
+      const focusTarget = (sim.state.phase === 3 && game.bossVisible) ? game.boss.position : game.cam.target;
+      bokeh.uniforms.focus.value = camera.position.distanceTo(focusTarget);
+      bokeh.uniforms.aspect.value = camera.aspect;
+    }
     left -= dt;
   }
   composer.render(0);
