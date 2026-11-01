@@ -6,6 +6,8 @@
 
 一个**可直接双击运行、无需后端、无需联网**的游戏化演练大屏原型。基于 Three.js / WebGL 实时渲染；星云、行星、城市灯光、防御塔、能量护盾、粒子与音效全部程序化生成，构建产物是单个约 640 KB 的 `dist/index.html`。
 
+**在线演示**：<https://whllowp.github.io/atlas-deep-space-drill/>
+
 ---
 
 ## 1. 它解决了什么
@@ -105,6 +107,7 @@
 
 ```
 ├─ dist/index.html          # 最终交付：单文件，双击即用
+├─ index.html               # GitHub Pages 入口（跳转 dist）
 ├─ src/
 │  ├─ main.js               # 渲染器 / 后处理 / 交互 / 调试钩子
 │  ├─ sim.js                # 演练状态机与数据（替换这里接真实监控）
