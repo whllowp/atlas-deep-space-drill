@@ -70,7 +70,7 @@
         </div>
         <div class="meta">
           <label>链路状态</label>
-          <b id="runState" class="ok">待命</b>
+          <span class="state-line"><i class="status-led" id="statusLed"></i><b id="runState" class="ok">待命</b></span>
         </div>
         <div class="top-actions">
           <button class="icon-btn" id="btnConsole" title="打开指挥席"><span>▤</span></button>
@@ -102,6 +102,13 @@
           <li data-k="3"><i></i><b>击退 APT 母舰</b><span>护盾完整度 ≥ 40%</span></li>
         </ul>
         <div class="obj-progress"><i id="objProgress"></i></div>
+      </section>
+
+      <section class="panel comms">
+        <header><span class="tick"></span>指挥通讯 <em>C2 COMMS</em><span class="c2-status" id="c2Status">LINK</span></header>
+        <div class="comms-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="comms-list" id="commsList"></div>
+        <div class="comms-foot"><span>CH 07 · 加密频道</span><span id="commsClock">00:00:00</span></div>
       </section>
     </aside>
 
@@ -178,7 +185,13 @@
     <footer class="bottom">
       <section class="panel terminal">
         <header><span class="live"></span>战术终端 <em>TACTICAL LOG</em><span class="term-cursor">_</span></header>
-        <div class="term" id="terminal"></div>
+        <div class="term-body">
+          <div class="term" id="terminal"></div>
+          <div class="radar-wrap">
+            <canvas id="radar" width="240" height="240"></canvas>
+            <div class="radar-meta"><span>RADAR</span><b id="radarCount">0</b><em>HOSTILE</em></div>
+          </div>
+        </div>
       </section>
 
       <div class="command-deck" id="commandDeck">
@@ -234,9 +247,14 @@
           <div><label>RPO</label><b id="rRpo">0s</b></div>
           <div><label>护盾剩余</label><b id="rShield">—</b></div>
         </div>
+        <div class="r-seq">
+          <div class="r-seq-head"><span>本局处置序列 <em>TACTIC SEQUENCE</em></span><b id="rMvp">MVP · —</b></div>
+          <div class="r-card-list" id="rCards"></div>
+        </div>
         <div class="r-actions">
           <button class="btn primary" id="btnReplay"><span class="b-ico">↻</span> 再次演练</button>
           <button class="btn ghost" id="btnCloseResult">查看战场</button>
+          <button class="btn ghost" id="btnCopyReport">复制战报</button>
         </div>
       </div>
     </div>

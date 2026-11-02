@@ -10,7 +10,7 @@
 - **双屏**：大厅大屏 + 独立「指挥席」控制台，支持本机 `BroadcastChannel` 与局域网 SSE 中继；
 - **电影模式**：2.39:1 遮幅、电影调色、景深（DoF）、FXAA、变形宽银幕光晕、导演机位轮切、REC 时间码，按 `C` 一键进入。
 
-基于 Three.js / WebGL 实时渲染；星云、行星、天际线、霓虹、雨、护盾、粒子与音效全部程序化生成。主页面 `dist/index.html` 约 686 KB，控制台 `dist/console.html` 约 28 KB，两者都无外部图片 / 音频依赖。
+基于 Three.js / WebGL 实时渲染；星云、行星、天际线、霓虹、雨、护盾、粒子与音效全部程序化生成。主页面 `dist/index.html` 约 720 KB，控制台 `dist/console.html` 约 28 KB，两者都无外部图片 / 音频依赖。
 
 **在线演示**：<https://whllowp.github.io/atlas-deep-space-drill/>  
 **在线指挥席**：<https://whllowp.github.io/atlas-deep-space-drill/console.html>
@@ -97,9 +97,14 @@
 
 - **OPS ENERGY** 初始 100，演练中 7/s 回复；出牌扣能量，冷却期间卡面变暗并显示倒计时。
 - 四盏 **MASTER CAUTION** 灯对应 NET / DB / PWR / ATK，随阶段与护盾状态点亮。
+- 左侧 **C2 COMMS**：滚动通话记录、打字机、波形、`LINK / ALERT / END` 状态。
+- 战术终端右侧新增 **RADAR**：扫描扇区、节点绿/黄/红点、敌对红点与 HOSTILE 计数。
 - 右侧 **THREAT INTENT** 显示下一步敌方行动：P1 SYN FLOOD、P2 DB LOCK、P3 OMNI BEAM，带倒计时与进度条。
 - C2 通讯条回显阶段公告与出牌回执；所有操作同步写入战术终端。
-- 迭代拆分与验收见 **[docs/design-iterations.md](docs/design-iterations.md)**。
+- 结算卡新增 S 评级虚线印章、积分滚动、本局出牌序列、MVP 与 **复制战报**。
+- 迭代拆分与验收见 **[docs/design-iterations.md](docs/design-iterations.md)**（10/10 完成）。
+
+![4K 驾驶舱](docs/4k.jpg)
 
 ---
 
@@ -247,6 +252,8 @@ ws.onmessage = (ev) => {
 ## 8. 性能与验收
 
 - 1920×1080 / DPR 1.75：普通模式目标 45–60 FPS（真机 GPU；headless SwiftShader 数值不代表真机）
+- 2560×1440 与 3840×2160 已验证无横向/纵向溢出；4K 下 HUD 字号上限 30px
+- 1280×720 自动隐藏 C2 面板并上移 Boss 血条；≤1180 隐藏左栏与击杀播报，保留手牌
 - 电影模式开启 DoF 会额外渲染一次深度：独显/游戏本无压力；核显可按 `Q` 关闭景深，或使用 `?quality=low`
 - 赛博都市：230 栋楼 = 1 个 instanced draw call；雨 850 线段；车流 260 点；空中车流 90 点；湿地涟漪 96 段圆盘
 - 电影模式：调色/暗角/光晕 + 深度景深；FXAA 替代 MSAA，避免纹理天空在部分驱动上变黑
@@ -264,6 +271,8 @@ ws.onmessage = (ev) => {
 ## 9. 已知限制 / 下一步
 
 - 赛博都市是**风格化**程序化场景，不是 UE5 级写实；没有 SSAO / 真实 DOF / 光追。
+- 处置手牌只在**大厅**可用；指挥席负责全局控制，不显示/操作单卡。
+- 1024×768 为简化布局：隐藏左栏、雷达与击杀播报，保留手牌与核心 KPI。
 - 跨设备同步依赖 `npm run dev` 的 SSE 中继；GitHub Pages 只能同源 BroadcastChannel。
 - `file://` 双开不保证同步；多屏请走 HTTP。
 - 声音需一次用户手势后启动。

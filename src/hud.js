@@ -33,9 +33,12 @@ export class HUD {
       themeChip: $('themeChip'), btnTheme: $('btnTheme'),
       rScore: $('rScore'), rCombo: $('rCombo'), rBlocked: $('rBlocked'),
       rRto: $('rRto'), rRpo: $('rRpo'), rShield: $('rShield'),
+      rCards: $('rCards'), rMvp: $('rMvp'), btnCopyReport: $('btnCopyReport'),
     };
 
     this.spark = $('spark').getContext('2d');
+    this.radar = $('radar').getContext('2d');
+    this.radarT = 0;
     this.buildNodes();
     this.buildCards();
     this.bind();
@@ -64,6 +67,7 @@ export class HUD {
     $('btnCine').addEventListener('click', () => this.onAction('cinematic'));
     $('btnReplay').addEventListener('click', () => this.onAction('restart'));
     $('btnCloseResult').addEventListener('click', () => this.hideResult());
+    this.el.btnCopyReport?.addEventListener('click', () => this.copyReport());
   }
 
   buildNodes() {
@@ -132,8 +136,16 @@ export class HUD {
     this.lastPhase = -1;
     this.setDeckLog('待命 · 启动演练后可使用处置卡', '', 0);
     this.setComms('C2 LINK · 指挥频道在线');
+    const commsList = $('commsList');
+    if (commsList) {
+      commsList.innerHTML = '';
+      this.addComms('C2 频道建立 · 指挥席已接入', 'ok');
+      this.addComms('防御网格自检完成 · 等待演练授权', 'info');
+    }
     this.el.objectives.querySelectorAll('li').forEach((li) => li.classList.remove('active', 'done'));
     this.el.objProgress.style.width = '0%';
+    this.el.rCards.innerHTML = '';
+    this.el.rMvp.textContent = 'MVP · —';
   }
 
   setTheme(mode) {
@@ -186,8 +198,14 @@ export class HUD {
     const p = st.phase;
     const total = st.totalT;
     this.el.clock.textContent = formatClock(total);
+    const cClock = $('commsClock');
+    if (cClock) cClock.textContent = formatClock(total);
     this.el.runState.textContent = st.complete ? '演练完成' : st.paused ? '已暂停' : st.running ? '演练中' : '待命';
     this.el.runState.className = st.complete ? 'ok' : st.paused ? 'warn' : st.running ? 'ok' : '';
+    const statusLed = $('statusLed');
+    if (statusLed) {
+      statusLed.className = `status-led${st.paused ? ' warn' : st.running && st.phase === 3 ? ' bad' : ''}`;
+    }
 
     const phase = PHASES[p];
     this.el.phaseProgress.style.width = `${phase && phase.dur ? Math.min(100, st.phaseT / phase.dur * 100) : 0}%`;
@@ -254,6 +272,7 @@ export class HUD {
     this.qpsHistory.push(m.qps);
     if (this.qpsHistory.length > 64) this.qpsHistory.shift();
     this.drawSpark(threat);
+    this.drawRadar(dt, st);
 
     if (this.subTimer > 0) {
       this.subTimer -= dt;
@@ -338,6 +357,12 @@ export class HUD {
       if (state) warn = true;
     });
     $('caution').classList.toggle('warn', warn);
+
+    const c2 = $('c2Status');
+    if (c2) {
+      c2.textContent = st.complete ? 'END' : st.phase === 3 ? 'ALERT' : st.running ? 'LINK' : 'IDLE';
+      c2.classList.toggle('alert', st.phase === 3 || shield < 45);
+    }
   }
 
   setDeckLog(text, kind = '', dur = 0) {
@@ -353,9 +378,32 @@ export class HUD {
     if (el) el.textContent = text;
   }
 
+  addComms(text, kind = 'info') {
+    const list = $('commsList');
+    if (!list) return;
+    const el = document.createElement('div');
+    el.className = `comms-msg ${kind} new`;
+    const time = document.createElement('time');
+    time.textContent = formatClock(this.sim.state.totalT);
+    const body = document.createElement('span');
+    el.append(time, body);
+    list.appendChild(el);
+    while (list.children.length > 4) list.removeChild(list.firstChild);
+
+    let i = 0;
+    const timer = setInterval(() => {
+      body.textContent = text.slice(0, ++i);
+      if (i >= text.length) {
+        clearInterval(timer);
+        el.classList.remove('new');
+      }
+    }, 12);
+  }
+
   tacticFeedback(tactic) {
     this.setDeckLog(`已执行「${tactic.name}」 · ${tactic.desc}`, 'ok', 2.8);
     this.setComms(`C2 · ${tactic.name} 已执行，等待效果确认`);
+    this.addComms(`你执行「${tactic.name}」 · ${tactic.desc}`, 'ok');
     const c = this.cards[tactic.id];
     if (c) {
       c.el.classList.remove('playing');
@@ -392,8 +440,7 @@ export class HUD {
     }
   }
 
-  drawSpark(threat) {
-    const ctx = this.spark;
+  drawSpark(threat) {    const ctx = this.spark;
     const w = ctx.canvas.width;
     const h = ctx.canvas.height;
     const hist = this.qpsHistory;
@@ -443,6 +490,93 @@ export class HUD {
     ctx.fill();
   }
 
+  drawRadar(dt, st) {
+    const ctx = this.radar;
+    if (!ctx) return;
+    this.radarT += dt;
+    const w = ctx.canvas.width;
+    const h = ctx.canvas.height;
+    const cx = w / 2;
+    const cy = h / 2;
+    const r = w * 0.44;
+    const TAU = Math.PI * 2;
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(4, 18, 26, 0.82)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, TAU);
+    ctx.fill();
+
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 3; i++) {
+      ctx.strokeStyle = `rgba(94, 242, 255, ${0.3 - i * 0.04})`;
+      ctx.beginPath();
+      ctx.arc(cx, cy, (r * i) / 3, 0, TAU);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(94, 242, 255, 0.55)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, TAU);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(94, 242, 255, 0.22)';
+    ctx.beginPath();
+    ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy);
+    ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r);
+    ctx.stroke();
+
+    const a = this.radarT * 1.05 - Math.PI / 2;
+    const grad = ctx.createLinearGradient(cx, cy, cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+    grad.addColorStop(0, 'rgba(94, 242, 255, 0.5)');
+    grad.addColorStop(1, 'rgba(94, 242, 255, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, a - 0.55, a);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(94, 242, 255, 0.95)';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+    ctx.stroke();
+
+    st.nodes.forEach((n, i) => {
+      const ang = (i / 6) * TAU + 0.35;
+      const rr = r * (0.3 + 0.55 * Math.min(1, n.load / 100));
+      const x = cx + Math.cos(ang) * rr;
+      const y = cy + Math.sin(ang) * rr;
+      const bad = n.status === 'offline';
+      const warn = n.status === 'degraded' || n.load > 80;
+      ctx.fillStyle = bad ? '#ff3b4e' : warn ? '#ffc857' : '#57ffb0';
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = ctx.fillStyle;
+      ctx.beginPath();
+      ctx.arc(x, y, bad ? 5 : 4, 0, TAU);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+
+    const hostiles = st.phase === 1 ? 6 : st.phase === 3 ? 9 : st.phase === 2 ? 4 : 0;
+    for (let i = 0; i < hostiles; i++) {
+      const ang = -this.radarT * 0.28 + (i / hostiles) * TAU + 0.7;
+      const rr = r * (0.78 + 0.12 * Math.sin(this.radarT * 0.9 + i));
+      ctx.fillStyle = 'rgba(255, 59, 78, 0.95)';
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = '#ff3b4e';
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(ang) * rr, cy + Math.sin(ang) * rr, 3.2, 0, TAU);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#dffbff';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 2.6, 0, TAU);
+    ctx.fill();
+
+    const count = $('radarCount');
+    if (count) count.textContent = hostiles;
+  }
+
   logLine({ time, text, kind }) {
     const ln = document.createElement('div');
     ln.className = `ln ${kind}`;
@@ -468,6 +602,7 @@ export class HUD {
     this.el.aTitle.textContent = title;
     this.el.aSub.textContent = sub || '';
     this.setComms(`C2 · ${title}${sub ? ` · ${sub}` : ''}`);
+    this.addComms(`${title}${sub ? ` · ${sub}` : ''}`, tone === 'good' ? 'ok' : 'warn');
     a.className = `announce ${tone || ''}`;
     void a.offsetWidth;
     a.classList.add('show');
@@ -513,12 +648,31 @@ export class HUD {
     this.el.subtitle.classList.remove('show');
     this.el.announce.classList.remove('show');
     this.setComms('C2 · 演练结束，战报已生成');
-    this.el.rScore.textContent = Math.round(this.sim.state.metrics.score).toLocaleString('en-US');
+    this.addComms('演练结束 · 战报生成，等待复盘', 'ok');
+    this.el.rScore.textContent = '0';
+    const targetScore = Math.round(this.sim.state.metrics.score);
+    const start = performance.now();
+    const step = (now) => {
+      const k = Math.min(1, (now - start) / 900);
+      const eased = 1 - Math.pow(1 - k, 3);
+      this.el.rScore.textContent = Math.round(targetScore * eased).toLocaleString('en-US');
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
     this.el.rCombo.textContent = `×${stats.maxCombo || 1}`;
     this.el.rBlocked.textContent = (stats.kills || 0).toLocaleString('en-US');
     this.el.rRto.textContent = `${stats.rto || 42}s`;
     this.el.rRpo.textContent = `${stats.rpo || 0}s`;
     this.el.rShield.textContent = `${stats.shield ?? 100}%`;
+
+    const seq = stats.tacticLog || [];
+    this.el.rCards.innerHTML = seq.length
+      ? seq.map((t) => `<div class="r-chip" style="--accent:${t.accent}"><i>${t.icon}</i><b>${t.name}</b><time>${formatClock(t.t)}</time></div>`).join('')
+      : '<span class="r-empty">未使用处置卡 · 全自动防御</span>';
+    const counts = {};
+    seq.forEach((t) => { counts[t.name] = (counts[t.name] || 0) + 1; });
+    const mvp = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    this.el.rMvp.textContent = mvp ? `MVP · ${mvp[0]} ×${mvp[1]}` : 'MVP · 未出牌';
     this.el.objectives.querySelectorAll('li').forEach((li) => {
       li.classList.remove('active');
       li.classList.add('done');
@@ -533,6 +687,48 @@ export class HUD {
 
   hideResult() {
     this.el.result.classList.remove('show');
+  }
+
+  copyReport() {
+    const st = this.sim.state;
+    const seq = (st.stats.tacticLog || []).map((t) => t.name).join(' → ') || '未出牌';
+    const text = [
+      'ATLAS // DRILL-2077 演练战报',
+      `结果：S 级 · 防区守住`,
+      `总积分：${Math.round(st.metrics.score).toLocaleString('en-US')}`,
+      `最高连击：×${st.stats.maxCombo || 1}`,
+      `拦截攻击：${(st.stats.kills || 0).toLocaleString('en-US')}`,
+      `RTO / RPO：${st.stats.rto || 42}s / ${st.stats.rpo || 0}s`,
+      `护盾剩余：${st.stats.shield ?? 100}%`,
+      `处置序列：${seq}`,
+      `生成时间：${new Date().toLocaleString('zh-CN')}`,
+    ].join('\n');
+
+    const done = () => {
+      this.setDeckLog('战报已复制到剪贴板', 'ok', 2.2);
+      const btn = this.el.btnCopyReport;
+      if (btn) {
+        btn.textContent = '已复制 ✓';
+        setTimeout(() => { btn.textContent = '复制战报'; }, 1600);
+      }
+    };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => this.fallbackCopy(text, done));
+    } else {
+      this.fallbackCopy(text, done);
+    }
+  }
+
+  fallbackCopy(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch { /* ignore */ }
+    ta.remove();
+    done();
   }
 
   toggle() {

@@ -75,6 +75,7 @@ export class Sim {
     };
     this.beats = new Set();
     this.cooldowns = {};
+    this.tacticLog = [];
     this.lastKillAt = 0;
     this.comboTimer = 0;
     this.feedTimer = 0;
@@ -176,6 +177,7 @@ export class Sim {
     st.stats.rto = st.metrics.rto;
     st.stats.rpo = st.metrics.rpo;
     st.stats.shield = Math.round(st.metrics.shield);
+    st.stats.tacticLog = this.tacticLog.slice();
     this.emit('alarm', false);
     this.emit('complete', st.stats);
   }
@@ -269,6 +271,7 @@ export class Sim {
     const m = st.metrics;
     st.energy -= tactic.cost;
     this.cooldowns[id] = tactic.cd;
+    this.tacticLog.push({ id, name: tactic.name, icon: tactic.icon, accent: tactic.accent, t: st.totalT });
     m.combo = Math.min(50, m.combo + 2);
     m.maxCombo = Math.max(m.maxCombo, m.combo);
     this.comboTimer = 2.4;

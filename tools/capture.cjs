@@ -35,6 +35,12 @@ const fs = require('fs');
   await snap('phase3.jpg');
 
   await page.evaluate(() => window.__demo.skipTo(1, 34));
+  await page.keyboard.press('1');
+  await page.waitForTimeout(250);
+  await page.keyboard.press('2');
+  await page.waitForTimeout(250);
+  await page.keyboard.press('4');
+  await page.waitForTimeout(250);
   await page.evaluate(() => window.__demo.advance(96));
   await page.waitForTimeout(3000);
   await snap('result.jpg');
