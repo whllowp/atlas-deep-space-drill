@@ -7,6 +7,29 @@ export const PHASES = [
   { no: 'P3', name: 'BOSS 决战', sub: 'APT 总攻', dur: 42 },
 ];
 
+export const TACTICS = [
+  {
+    id: 'waf', name: 'WAF 限流', en: 'RATE LIMIT', icon: '⛨', cost: 20, cd: 7, accent: '#5ef2ff',
+    desc: '拦截洪峰 · 威胁 -12%',
+  },
+  {
+    id: 'scale', name: '弹性扩容', en: 'AUTO SCALE', icon: '⚡', cost: 25, cd: 11, accent: '#57ffb0',
+    desc: '节点负载 -18% · 延迟 -2ms',
+  },
+  {
+    id: 'failover', name: '主备切换', en: 'FAILOVER', icon: '⇄', cost: 35, cd: 16, accent: '#ffc857',
+    desc: '护盾 +8% · RTO -6s',
+  },
+  {
+    id: 'block', name: '封禁 IP', en: 'BLACKHOLE', icon: '⊘', cost: 15, cd: 6, accent: '#ff2e88',
+    desc: '清场 · 护盾 +3% · 积分 +900',
+  },
+  {
+    id: 'rollback', name: '回滚版本', en: 'ROLLBACK', icon: '↺', cost: 30, cd: 15, accent: '#9a6bff',
+    desc: '威胁 -35% · 延迟 -8ms',
+  },
+];
+
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const approach = (cur, target, rate, dt) => cur + (target - cur) * Math.min(1, rate * dt);
 
@@ -37,6 +60,8 @@ export class Sim {
       failT: -1,
       victoryT: -1,
       threat: 0,
+      energy: 100,
+      energyMax: 100,
       nodes: NODES.map((n) => ({
         id: n.id, role: n.role, load: 18 + Math.random() * 14,
         latency: 6 + Math.random() * 6, status: 'online', health: 1,
@@ -49,6 +74,7 @@ export class Sim {
       stats: { kills: 0, maxCombo: 1, rto: 0, rpo: 0, shield: 100 },
     };
     this.beats = new Set();
+    this.cooldowns = {};
     this.lastKillAt = 0;
     this.comboTimer = 0;
     this.feedTimer = 0;
@@ -222,9 +248,70 @@ export class Sim {
     m.shield = clamp(m.shield + v, 0, 100);
   }
 
+  /* --------------------------------------------------------------- tactics */
+  tickTactics(dt) {
+    const st = this.state;
+    const regen = st.running && !st.paused ? 7 : 2.5;
+    st.energy = clamp((st.energy ?? 100) + regen * dt, 0, st.energyMax || 100);
+    for (const id in this.cooldowns) {
+      this.cooldowns[id] = Math.max(0, this.cooldowns[id] - dt);
+    }
+  }
+
+  playTactic(id) {
+    const st = this.state;
+    const tactic = TACTICS.find((t) => t.id === id);
+    if (!tactic) return { ok: false, reason: 'unknown' };
+    if (!st.running || st.paused || st.complete) return { ok: false, reason: 'idle', tactic };
+    if ((this.cooldowns[id] || 0) > 0) return { ok: false, reason: 'cooldown', tactic };
+    if ((st.energy ?? 0) < tactic.cost) return { ok: false, reason: 'energy', tactic };
+
+    const m = st.metrics;
+    st.energy -= tactic.cost;
+    this.cooldowns[id] = tactic.cd;
+    m.combo = Math.min(50, m.combo + 2);
+    m.maxCombo = Math.max(m.maxCombo, m.combo);
+    this.comboTimer = 2.4;
+
+    if (id === 'waf') {
+      m.intercept = Math.min(99.995, m.intercept + 0.02);
+      m.blocked += 120;
+      m.score += 1200;
+      this.healShield(2);
+      st.threat = Math.max(0.2, st.threat - 0.12);
+    } else if (id === 'scale') {
+      st.nodes.forEach((n) => {
+        if (n.status === 'offline') return;
+        n.load = Math.max(12, n.load - 18);
+        n.latency = Math.max(4, n.latency - 2);
+      });
+      m.score += 1500;
+    } else if (id === 'failover') {
+      this.healShield(8);
+      m.rto = Math.max(0, m.rto - 6);
+      m.score += 1800;
+      m.failover += 1;
+      st.nodes[4].status = 'online';
+    } else if (id === 'block') {
+      m.blocked += 90;
+      m.score += 900;
+      this.healShield(3);
+    } else if (id === 'rollback') {
+      st.threat = Math.max(0.2, st.threat - 0.35);
+      m.latency = Math.max(6, m.latency - 8);
+      this.healShield(5);
+      m.score += 2000;
+    }
+
+    this.log(`执行处置卡「${tactic.name}」· ${tactic.desc}`, 'ok');
+    this.emit('tactic', { id, tactic });
+    return { ok: true, tactic };
+  }
+
   /* ---------------------------------------------------------------- update */
   update(dt) {
     const st = this.state;
+    this.tickTactics(dt);
     if (!st.running || st.paused || st.complete) {
       this.updateIdle(dt);
       return;

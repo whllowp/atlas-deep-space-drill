@@ -305,6 +305,35 @@ export class Game {
     this.enemyPool.push(e);
   }
 
+  clearEnemies() {
+    const n = this.enemies.length;
+    for (const e of this.enemies) {
+      this.particles.spawn(e.pos.clone(), 8, {
+        color: new THREE.Color(0xff2e88), speed: 10, life: 0.45, size: 1.1, gravity: -2,
+      });
+    }
+    for (const e of this.enemies) this.enemyPool.push(e);
+    this.enemies.length = 0;
+    this.enemyMesh.count = 0;
+    this.trailGeo.setDrawRange(0, 0);
+    this.glowGeo.setDrawRange(0, 0);
+    return n;
+  }
+
+  tacticFx(id) {
+    const colors = {
+      waf: 0x5ef2ff, scale: 0x57ffb0, failover: 0xffc857, block: 0xff2e88, rollback: 0x9a6bff,
+    };
+    const color = new THREE.Color(colors[id] || 0x5ef2ff);
+    const p = _v1.set(0, 10, 0);
+    this.particles.spawn(p.clone(), id === 'block' ? 64 : 38, {
+      color, speed: id === 'block' ? 22 : 14, life: 1.1, size: 1.7, gravity: -2,
+    });
+    this.world.shieldMat.uniforms.uFlash.value = 0.55;
+    this.addShake(id === 'block' ? 0.7 : 0.3);
+    if (id === 'block') this.clearEnemies();
+  }
+
   updateEnemies(dt, t) {
     const st = this.sim.state;
     const phase = st.phase;

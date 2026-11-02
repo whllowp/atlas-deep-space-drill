@@ -1,4 +1,4 @@
-import { formatClock, PHASES } from './sim.js';
+import { formatClock, PHASES, TACTICS } from './sim.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -10,6 +10,9 @@ export class HUD {
     this.acc = 0;
     this.lastPhase = -1;
     this.feedCount = 0;
+    this.cards = {};
+    this.deckTimer = 0;
+    this.cautionT = 0;
 
     this.el = {
       clock: $('clock'), runState: $('runState'),
@@ -34,6 +37,7 @@ export class HUD {
 
     this.spark = $('spark').getContext('2d');
     this.buildNodes();
+    this.buildCards();
     this.bind();
     this.subTimer = 0;
     this.resultTimer = 0;
@@ -86,6 +90,33 @@ export class HUD {
     });
   }
 
+  buildCards() {
+    const hand = $('cardHand');
+    if (!hand) return;
+    TACTICS.forEach((def, i) => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'ops-card';
+      card.dataset.id = def.id;
+      card.style.setProperty('--accent', def.accent);
+      card.innerHTML = `
+        <div class="oc-top"><span class="oc-icon">${def.icon}</span><span class="oc-cost">${def.cost}</span></div>
+        <div class="oc-name">${def.name}</div>
+        <div class="oc-en">${def.en}</div>
+        <div class="oc-desc">${def.desc}</div>
+        <span class="oc-key">${i + 1}</span>
+        <div class="oc-cd"><span></span></div>`;
+      card.addEventListener('click', () => this.onAction('tactic', def.id));
+      hand.appendChild(card);
+      this.cards[def.id] = {
+        el: card,
+        cd: card.querySelector('.oc-cd'),
+        cdText: card.querySelector('.oc-cd span'),
+        def,
+      };
+    });
+  }
+
   resetView() {
     clearTimeout(this.resultTimer);
     this.el.result.classList.remove('show');
@@ -95,10 +126,12 @@ export class HUD {
     this.el.bossbar.classList.remove('show');
     this.el.announce.classList.remove('show');
     this.el.btnStart.classList.add('pulse');
-    this.el.btnStart.innerHTML = '<span class="b-ico">▶</span> 启动演练 <kbd>SPACE</kbd>';
+    this.el.btnStart.innerHTML = '<span class="b-ico">▶</span> 启动 <kbd>SPACE</kbd>';
     this.el.btnNext.disabled = false;
-    this.el.btnNext.innerHTML = '<span class="b-ico">Ⅱ</span> 暂停演练 <kbd>P</kbd>';
+    this.el.btnNext.innerHTML = '<span class="b-ico">Ⅱ</span> 暂停 <kbd>P</kbd>';
     this.lastPhase = -1;
+    this.setDeckLog('待命 · 启动演练后可使用处置卡', '', 0);
+    this.setComms('C2 LINK · 指挥频道在线');
     this.el.objectives.querySelectorAll('li').forEach((li) => li.classList.remove('active', 'done'));
     this.el.objProgress.style.width = '0%';
   }
@@ -113,8 +146,8 @@ export class HUD {
 
   setPaused(p) {
     this.el.btnNext.innerHTML = p
-      ? '<span class="b-ico">▶</span> 继续演练 <kbd>P</kbd>'
-      : '<span class="b-ico">Ⅱ</span> 暂停演练 <kbd>P</kbd>';
+      ? '<span class="b-ico">▶</span> 继续 <kbd>P</kbd>'
+      : '<span class="b-ico">Ⅱ</span> 暂停 <kbd>P</kbd>';
   }
 
   setPhase(p) {
@@ -188,6 +221,9 @@ export class HUD {
     this.el.combo.querySelector('b').textContent = `×${combo}`;
     this.el.combo.classList.toggle('hot', combo >= 5);
 
+    this.updateDeck(st, dt);
+    this.updateIntent(st);
+
     // nodes
     let alive = 0;
     st.nodes.forEach((n, i) => {
@@ -225,8 +261,126 @@ export class HUD {
     }
   }
 
-  setQps(v) {
-    if (v >= 1e6) {
+  updateDeck(st, dt) {
+    const energy = Math.round(st.energy ?? 100);
+    const fill = $('energyFill');
+    if (fill) fill.style.width = `${energy}%`;
+    $('energyVal').textContent = energy;
+    $('energy').classList.toggle('low', energy < 30);
+    const canAct = st.running && !st.paused && !st.complete;
+
+    for (const id in this.cards) {
+      const c = this.cards[id];
+      const remain = this.sim.cooldowns[id] || 0;
+      const blocked = remain > 0 || energy < c.def.cost || !canAct;
+      c.el.classList.toggle('disabled', blocked);
+      const pct = remain > 0 ? Math.min(100, (remain / c.def.cd) * 100) : 0;
+      c.cd.style.height = `${pct}%`;
+      c.cdText.textContent = remain > 0 ? `${remain.toFixed(1)}s` : '';
+    }
+
+    this.cautionT -= dt;
+    if (this.cautionT <= 0) {
+      this.cautionT = 0.15;
+      this.updateCaution(st);
+    }
+
+    if (this.deckTimer > 0) {
+      this.deckTimer -= dt;
+      if (this.deckTimer <= 0) {
+        this.setDeckLog(canAct ? '选择一张处置卡 · 消耗 OPS 能量' : '待命 · 启动演练后可使用处置卡', '', 0);
+      }
+    }
+  }
+
+  updateIntent(st) {
+    const defs = [
+      { name: 'STANDBY', desc: '等待演练启动 · 威胁评估待机', icon: '◇', cycle: 0, tag: 'IDLE' },
+      { name: 'SYN FLOOD', desc: '1.2 Tbps 混合流量 · 冲击 WAF', icon: '☣', cycle: 12, tag: 'INBOUND' },
+      { name: 'DB LOCK', desc: '主库不可写 · 等待主备切换', icon: '▣', cycle: 9, tag: 'CRITICAL' },
+      { name: 'OMNI BEAM', desc: '母舰充能 · 全屏轰击', icon: '☠', cycle: 6, tag: 'CHARGING' },
+    ];
+    const d = defs[st.phase] || defs[0];
+    const panel = $('intent');
+    panel.className = `panel intent p${st.phase}`;
+    $('intentIcon').textContent = d.icon;
+    $('intentName').textContent = d.name;
+    $('intentDesc').textContent = d.desc;
+
+    let remain = 0;
+    let tag = d.tag;
+    if (st.complete) {
+      tag = 'COMPLETE';
+    } else if (!st.running) {
+      tag = 'IDLE';
+    } else if (st.paused) {
+      tag = 'HOLD';
+    } else if (d.cycle) {
+      remain = Math.max(0, d.cycle - (st.phaseT % d.cycle));
+    }
+    $('intentTag').textContent = tag;
+    $('intentT').textContent = remain > 0 ? remain.toFixed(1) : '--';
+    $('intentBar').style.width = d.cycle && remain > 0 ? `${(remain / d.cycle) * 100}%` : '0%';
+  }
+
+  updateCaution(st) {
+    const shield = st.metrics.shield;
+    const map = {
+      net: st.phase === 1 ? 'crit' : st.threat > 0.85 ? 'on' : '',
+      db: st.phase === 2 ? 'crit' : '',
+      pwr: shield < 50 ? 'crit' : shield < 72 ? 'on' : '',
+      atk: st.phase === 3 ? 'crit' : '',
+    };
+    let warn = false;
+    document.querySelectorAll('#caution [data-lamp]').forEach((el) => {
+      const state = map[el.dataset.lamp] || '';
+      el.className = state;
+      if (state) warn = true;
+    });
+    $('caution').classList.toggle('warn', warn);
+  }
+
+  setDeckLog(text, kind = '', dur = 0) {
+    const el = $('deckLog');
+    if (!el) return;
+    el.textContent = text;
+    el.className = `deck-log ${kind}`;
+    this.deckTimer = dur;
+  }
+
+  setComms(text) {
+    const el = $('commsText');
+    if (el) el.textContent = text;
+  }
+
+  tacticFeedback(tactic) {
+    this.setDeckLog(`已执行「${tactic.name}」 · ${tactic.desc}`, 'ok', 2.8);
+    this.setComms(`C2 · ${tactic.name} 已执行，等待效果确认`);
+    const c = this.cards[tactic.id];
+    if (c) {
+      c.el.classList.remove('playing');
+      void c.el.offsetWidth;
+      c.el.classList.add('playing');
+      setTimeout(() => c.el.classList.remove('playing'), 520);
+    }
+    this.flash('good');
+  }
+
+  tacticDenied(reason, id) {
+    const messages = {
+      idle: '演练未开始', cooldown: '处置冷却中', energy: 'OPS 能量不足', unknown: '未知处置',
+    };
+    this.setDeckLog(`无法执行 · ${messages[reason] || '条件不满足'}`, 'warn', 1.8);
+    const c = this.cards[id];
+    if (c) {
+      c.el.classList.remove('denied');
+      void c.el.offsetWidth;
+      c.el.classList.add('denied');
+      setTimeout(() => c.el.classList.remove('denied'), 340);
+    }
+  }
+
+  setQps(v) {    if (v >= 1e6) {
       this.el.qps.textContent = (v / 1e6).toFixed(2);
       this.el.qpsUnit.textContent = 'M QPS';
     } else if (v >= 1000) {
@@ -313,6 +467,7 @@ export class HUD {
     this.el.aKicker.textContent = kicker;
     this.el.aTitle.textContent = title;
     this.el.aSub.textContent = sub || '';
+    this.setComms(`C2 · ${title}${sub ? ` · ${sub}` : ''}`);
     a.className = `announce ${tone || ''}`;
     void a.offsetWidth;
     a.classList.add('show');
@@ -357,6 +512,7 @@ export class HUD {
     this.el.bossbar.classList.remove('show');
     this.el.subtitle.classList.remove('show');
     this.el.announce.classList.remove('show');
+    this.setComms('C2 · 演练结束，战报已生成');
     this.el.rScore.textContent = Math.round(this.sim.state.metrics.score).toLocaleString('en-US');
     this.el.rCombo.textContent = `×${stats.maxCombo || 1}`;
     this.el.rBlocked.textContent = (stats.kills || 0).toLocaleString('en-US');

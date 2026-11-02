@@ -22,6 +22,15 @@
       <span class="frame-tag right">SIMULATION // CLASSIFIED</span>
     </div>
 
+    <div class="cockpit" aria-hidden="true">
+      <div class="canopy-glass"></div>
+      <div class="canopy-bar l"></div>
+      <div class="canopy-bar r"></div>
+      <div class="cockpit-seat l"><b>SEAT 07</b><span>PILOT · 值班指挥员</span></div>
+      <div class="cockpit-seat r"><b>C2 LINK</b><span>ATLAS / 加密频道</span></div>
+      <div class="dash-lip"></div>
+    </div>
+
     <header class="topbar">
       <div class="brand">
         <div class="brand-mark">
@@ -123,6 +132,19 @@
         </div>
       </section>
 
+      <section class="panel intent" id="intent">
+        <header><span class="tick"></span>敌方意图 <em>THREAT INTENT</em><span class="intent-tag" id="intentTag">IDLE</span></header>
+        <div class="intent-body">
+          <div class="intent-icon" id="intentIcon">◇</div>
+          <div class="intent-copy">
+            <b id="intentName">STANDBY</b>
+            <span id="intentDesc">等待演练启动 · 威胁评估待机</span>
+          </div>
+          <div class="intent-timer"><b id="intentT">--</b><small>SEC</small></div>
+        </div>
+        <div class="intent-bar"><i id="intentBar"></i></div>
+      </section>
+
       <section class="panel score">
         <div class="score-main">
           <label>SCORE · 防守积分</label>
@@ -159,10 +181,32 @@
         <div class="term" id="terminal"></div>
       </section>
 
-      <div class="actionbar" id="actionbar">
-        <button class="btn primary" id="btnStart"><span class="b-ico">▶</span> 启动演练 <kbd>SPACE</kbd></button>
-        <button class="btn ghost" id="btnNext"><span class="b-ico">Ⅱ</span> 暂停演练 <kbd>P</kbd></button>
-        <div class="hint" id="hint">空格 启动 / 推进 · 拖拽旋转 · <kbd>T</kbd> 场景 · <kbd>C</kbd> 电影 · <kbd>Q</kbd> 景深 · <kbd>H</kbd> HUD</div>
+      <div class="command-deck" id="commandDeck">
+        <div class="deck-head">
+          <div class="deck-title"><span class="tick"></span>处置手牌 <em>OPS DECK</em></div>
+          <div class="caution-cluster" id="caution">
+            <i data-lamp="net">NET</i><i data-lamp="db">DB</i><i data-lamp="pwr">PWR</i><i data-lamp="atk">ATK</i>
+            <b>MASTER CAUTION</b>
+          </div>
+          <div class="comms-mini">
+            <span class="wave"><i></i><i></i><i></i><i></i><i></i></span>
+            <em id="commsText">C2 LINK · 指挥频道在线</em>
+          </div>
+          <div class="energy" id="energy">
+            <label>OPS ENERGY</label>
+            <div class="energy-bar"><i id="energyFill" style="width:100%"></i></div>
+            <b><span id="energyVal">100</span><small>/100</small></b>
+          </div>
+        </div>
+        <div class="card-hand" id="cardHand"></div>
+        <div class="deck-foot">
+          <div class="deck-log" id="deckLog">选择处置卡 · 消耗 OPS 能量 · 冷却结束后可再次使用</div>
+          <div class="deck-actions">
+            <button class="btn primary" id="btnStart"><span class="b-ico">▶</span> 启动 <kbd>SPACE</kbd></button>
+            <button class="btn ghost" id="btnNext"><span class="b-ico">Ⅱ</span> 暂停 <kbd>P</kbd></button>
+          </div>
+        </div>
+        <div class="hint" id="hint"><kbd>1</kbd>–<kbd>5</kbd> 出牌 · <kbd>Shift</kbd>+<kbd>1</kbd>–<kbd>3</kbd> 跳阶段 · <kbd>T</kbd> 场景 · <kbd>C</kbd> 电影 · <kbd>Q</kbd> 景深 · <kbd>H</kbd> HUD</div>
       </div>
 
       <div class="coords">

@@ -24,6 +24,7 @@ const fs = require('fs');
   await page.evaluate(() => window.__demo.skipTo(1, 8));
   await page.evaluate(() => window.__demo.advance(5));
   await snap('phase1.jpg');
+  await snap('cockpit.jpg');
 
   await page.evaluate(() => window.__demo.skipTo(2, 1.6));
   await page.evaluate(() => window.__demo.advance(3.2));
@@ -40,6 +41,8 @@ const fs = require('fs');
 
   await page.reload({ waitUntil: 'load' });
   await page.waitForTimeout(2200);
+  await page.keyboard.press('Space');
+  await page.waitForTimeout(4200);
   await page.evaluate(() => window.__demo.applyTheme('city', { instant: true }));
   await page.waitForTimeout(1600);
   await snap('city.jpg');

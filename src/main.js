@@ -8,7 +8,7 @@ import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
 import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 
-import { Sim, formatClock, PHASES } from './sim.js';
+import { Sim, formatClock, PHASES, TACTICS } from './sim.js';
 import { World } from './world.js';
 import { Game } from './game.js';
 import { HUD } from './hud.js';
@@ -233,7 +233,7 @@ function applyTheme(mode, { instant = false } = {}) {
   }, 300);
 }
 
-async function act(action) {
+async function act(action, value) {
   if (action === 'console') {
     window.open('./console.html?sync=1', 'atlas-console', 'width=1600,height=900');
     return;
@@ -252,6 +252,17 @@ async function act(action) {
     applyTheme(theme === 'space' ? 'city' : 'space');
   } else if (action === 'cinematic') {
     setCinematic(!cinematic);
+  } else if (action === 'tactic') {
+    const res = sim.playTactic(value);
+    if (!res.ok) {
+      hud.tacticDenied(res.reason, value);
+      return;
+    }
+    game.tacticFx(value);
+    hud.tacticFeedback(res.tactic);
+    if (value === 'block') audio.explosion(false);
+    else if (value === 'failover' || value === 'scale') audio.repair();
+    else if (value === 'waf') audio.shield();
   } else if (action === 'sound') {
     muted = !muted;
     audio.setMuted(muted);
@@ -292,8 +303,15 @@ window.addEventListener('keydown', (e) => {
     act('restart');
   } else if (e.key === 'p' || e.key === 'P') {
     sim.togglePause();
-  } else if (e.key === '1' || e.key === '2' || e.key === '3') {
-    window.__demo.skipTo(Number(e.key), Number(e.key) === 2 ? 6 : 8);
+  } else {
+    const m = /^Digit([1-5])$/.exec(e.code);
+    if (!m) return;
+    const idx = Number(m[1]) - 1;
+    if (e.shiftKey) {
+      if (idx < 3) window.__demo.skipTo(idx + 1, idx === 1 ? 6 : 8);
+    } else {
+      act('tactic', TACTICS[idx].id);
+    }
   }
 });
 
@@ -325,6 +343,7 @@ function snapshot() {
     cinematic,
     muted,
     blackout,
+    energy: s.energy,
     metrics: {
       qps: m.qps, intercept: m.intercept, latency: m.latency, rto: m.rto, rpo: m.rpo,
       shield: m.shield, score: m.score, combo: m.combo, blocked: m.blocked, bossHP: m.bossHP,
@@ -351,7 +370,7 @@ async function handleCommand(msg) {
     await act('sound');
     return;
   }
-  await act(action);
+  await act(action, msg.value);
 }
 
 sync.on('cmd', (msg) => { handleCommand(msg).catch(() => {}); });
