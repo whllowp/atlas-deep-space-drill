@@ -63,6 +63,7 @@ export class HUD {
     $('btnFull').addEventListener('click', () => this.onAction('fullscreen'));
     $('btnHud').addEventListener('click', () => this.onAction('hud'));
     $('btnConsole').addEventListener('click', () => this.onAction('console'));
+    $('btnShowcase').addEventListener('click', () => this.onAction('showcase'));
     this.el.btnTheme.addEventListener('click', () => this.onAction('theme'));
     $('btnCine').addEventListener('click', () => this.onAction('cinematic'));
     $('btnReplay').addEventListener('click', () => this.onAction('restart'));

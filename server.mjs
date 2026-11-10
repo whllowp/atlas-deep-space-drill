@@ -82,7 +82,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  let target = p === '/' ? '/dist/index.html' : p === '/console' ? '/dist/console.html' : p;
+  let target = p === '/' ? '/dist/index.html' : p === '/console' ? '/dist/console.html' : p === '/showcase' ? '/dist/showcase.html' : p;
   const file = path.resolve(root, '.' + target);
   if (!file.startsWith(root + path.sep)) {
     res.writeHead(403).end('forbidden');
@@ -109,6 +109,7 @@ function lanAddress() {
 server.listen(port, host, () => {
   console.log(`ATLAS preview:    http://127.0.0.1:${port}/`);
   console.log(`ATLAS console:    http://127.0.0.1:${port}/console`);
+  console.log(`ATLAS showcase:   http://127.0.0.1:${port}/showcase`);
   console.log(`Sync relay:       http://127.0.0.1:${port}/api/sync/events`);
   const lan = lanAddress();
   if (lan && host === '0.0.0.0') {

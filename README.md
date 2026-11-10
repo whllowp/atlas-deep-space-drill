@@ -8,12 +8,14 @@
 
 - **双主题**：`DEEP SPACE` 星港防线 / `NEO-SHANGHAI` 雨夜赛博都市，按 `T` 或点击 `◐` 无刷新切换；
 - **双屏**：大厅大屏 + 独立「指挥席」控制台，支持本机 `BroadcastChannel` 与局域网 SSE 中继；
-- **电影模式**：2.39:1 遮幅、电影调色、景深（DoF）、FXAA、变形宽银幕光晕、导演机位轮切、REC 时间码，按 `C` 一键进入。
+- **电影模式**：2.39:1 遮幅、电影调色、景深（DoF）、FXAA、变形宽银幕光晕、导演机位轮切、REC 时间码，按 `C` 一键进入；
+- **设计展示页**：10 次设计迭代画廊 + 大厅/指挥席双屏演示 + 可交互的实时分屏，按 `G` 或点 `▦` 打开。
 
-基于 Three.js / WebGL 实时渲染；星云、行星、天际线、霓虹、雨、护盾、粒子与音效全部程序化生成。主页面 `dist/index.html` 约 720 KB，控制台 `dist/console.html` 约 28 KB，两者都无外部图片 / 音频依赖。
+基于 Three.js / WebGL 实时渲染；星云、行星、天际线、霓虹、雨、护盾、粒子与音效全部程序化生成。主页面 `dist/index.html` 约 721 KB，控制台 `dist/console.html` 约 28 KB，展示页 `dist/showcase.html` 约 44 KB，均无外部图片 / 音频依赖。
 
 **在线演示**：<https://whllowp.github.io/atlas-deep-space-drill/>  
-**在线指挥席**：<https://whllowp.github.io/atlas-deep-space-drill/console.html>
+**在线指挥席**：<https://whllowp.github.io/atlas-deep-space-drill/console.html>  
+**设计展示**：<https://whllowp.github.io/atlas-deep-space-drill/showcase.html>
 
 ---
 
@@ -56,8 +58,8 @@
 ## 2. 三十秒上手
 
 1. **直接双击** `dist/index.html`（Chrome / Edge），点击「启动演练」或按 <kbd>Space</kbd>。
-2. 重新构建：`npm install && npm run build`（同时产出 `dist/index.html` 与 `dist/console.html`）。
-3. 本地预览 + 局域网同步：`npm run dev` → <http://127.0.0.1:5178/>，指挥席 <http://127.0.0.1:5178/console>。
+2. 重新构建：`npm install && npm run build`（同时产出 `dist/index.html`、`dist/console.html`、`dist/showcase.html`）。
+3. 本地预览 + 局域网同步：`npm run dev` → <http://127.0.0.1:5178/>，指挥席 <http://127.0.0.1:5178/console>，设计展示 <http://127.0.0.1:5178/showcase>。
 4. 自动演示：`dist/index.html?auto=1`；纯净画面：`?hud=0`；指定主题：`?theme=city`；电影模式：`?cine=1`；低配机：`?quality=low`（关闭默认景深、限制 DPR）。
 
 > 声音需一次点击/按键后才能启动（浏览器自动播放策略）。多屏跨设备必须通过 `npm run dev` 的 HTTP 服务访问，`file://` 双开不保证同步。
@@ -77,6 +79,7 @@
 | `M` | 静音 / 恢复 |
 | `F` | 全屏 |
 | `H` | 隐藏 / 显示 HUD |
+| `G` | 打开设计展示页 |
 | `R` | 重新开始 |
 | `1`–`5` | 打出对应处置卡（WAF / 扩容 / 切换 / 封禁 / 回滚） |
 | `Shift`+`1`/`2`/`3` | 直接跳到 P1 / P2 / P3（彩排用） |
@@ -105,6 +108,15 @@
 - 迭代拆分与验收见 **[docs/design-iterations.md](docs/design-iterations.md)**（10/10 完成）。
 
 ![4K 驾驶舱](docs/4k.jpg)
+
+### 设计展示页
+
+![设计展示页](docs/showcase.jpg)
+
+- 独立 `showcase.html`：10 次迭代画廊、设计 token、双屏截图对照，以及可点击的 **实时双屏**（左 3D 大厅 + 右指挥席，1280×900 等比缩放）。
+- 大厅右上角 `▦` 或按 `G` 打开；也可直接访问 `/showcase.html`。
+- 页面本身不加载 Three.js，约 44 KB；实时双屏按需注入 iframe，避免首屏变重。
+- 源码：`src/showcase.template.html`、`src/showcase.css`、`src/showcase.js`，由 `build.mjs` 一起产出。
 
 ---
 
@@ -167,8 +179,10 @@
 ```
 ├─ dist/index.html           # 大厅大屏（单文件，双击即用）
 ├─ dist/console.html         # 指挥席控制台
+├─ dist/showcase.html        # 10 次迭代设计展示页
 ├─ index.html                # GitHub Pages 入口（跳转 dist）
 ├─ console.html              # 指挥席入口（跳转 dist/console.html）
+├─ showcase.html             # 展示页入口（跳转 dist/showcase.html）
 ├─ src/
 │  ├─ main.js                # 渲染器 / 后处理 / 主题 / 电影模式 / 同步
 │  ├─ sim.js                 # 演练状态机与数据（替换这里接真实监控）
@@ -182,10 +196,13 @@
 │  ├─ utils.js               # 程序化贴图与 Shader
 │  ├─ style.css              # 大屏 HUD 视觉规范
 │  ├─ console.css            # 指挥席视觉规范
+│  ├─ showcase.css           # 展示页视觉规范
+│  ├─ showcase.js            # 展示页交互（实时双屏）
 │  ├─ index.template.html    # 大屏 HTML 壳
-│  └─ console.template.html  # 指挥席 HTML 壳
+│  ├─ console.template.html  # 指挥席 HTML 壳
+│  └─ showcase.template.html # 展示页 HTML 壳
 ├─ server.mjs                # 静态预览 + SSE 中继（0.0.0.0）
-├─ build.mjs                 # 双页面构建
+├─ build.mjs                 # 三页面构建
 ├─ tools/capture.cjs         # 生成 docs 截图
 └─ docs/                     # 截图与接入手册
 ```
@@ -244,6 +261,7 @@ ws.onmessage = (ev) => {
 | 主题切换、电影模式、同步命令 | `src/main.js` |
 | 导演机位 | `src/game.js` 的 `setCamGoal()`、`cineShot` |
 | 指挥席布局 / 按钮 | `src/console.template.html`、`src/console.css`、`src/console.js` |
+| 展示页文案 / 迭代卡片 | `src/showcase.template.html`、`src/showcase.css`、`src/showcase.js` |
 | 品牌名 / 主色 / 字体 | `src/style.css`、`src/console.css` 的 `:root` |
 | 跨设备中继端口 / 绑定地址 | `server.mjs`（`PORT` / `HOST`） |
 

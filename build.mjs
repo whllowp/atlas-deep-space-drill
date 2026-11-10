@@ -3,8 +3,11 @@ import fs from 'node:fs/promises';
 
 const css = await fs.readFile('src/style.css', 'utf8');
 const consoleCss = await fs.readFile('src/console.css', 'utf8');
+const showcaseCss = await fs.readFile('src/showcase.css', 'utf8');
 const tpl = await fs.readFile('src/index.template.html', 'utf8');
 const consoleTpl = await fs.readFile('src/console.template.html', 'utf8');
+const showcaseTpl = await fs.readFile('src/showcase.template.html', 'utf8');
+const showcaseJs = await fs.readFile('src/showcase.js', 'utf8');
 
 async function bundle(entry) {
   const result = await build({
@@ -33,8 +36,14 @@ const consoleHtml = consoleTpl
   .replace('/*__CSS__*/', () => consoleCss)
   .replace('/*__JS__*/', () => consoleJs);
 
+const showcaseHtml = showcaseTpl
+  .replace('/*__CSS__*/', () => showcaseCss)
+  .replace('/*__JS__*/', () => showcaseJs);
+
 await fs.mkdir('dist', { recursive: true });
 await fs.writeFile('dist/index.html', html, 'utf8');
 await fs.writeFile('dist/console.html', consoleHtml, 'utf8');
+await fs.writeFile('dist/showcase.html', showcaseHtml, 'utf8');
 console.log(`built dist/index.html (${(Buffer.byteLength(html) / 1024).toFixed(0)} KB)`);
 console.log(`built dist/console.html (${(Buffer.byteLength(consoleHtml) / 1024).toFixed(0)} KB)`);
+console.log(`built dist/showcase.html (${(Buffer.byteLength(showcaseHtml) / 1024).toFixed(0)} KB)`);

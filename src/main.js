@@ -238,6 +238,10 @@ async function act(action, value) {
     window.open('./console.html?sync=1', 'atlas-console', 'width=1600,height=900');
     return;
   }
+  if (action === 'showcase') {
+    window.open('./showcase.html', 'atlas-showcase', 'width=1440,height=960');
+    return;
+  }
   ensureAudio();
   audio.ui();
   if (action === 'start' || action === 'next') {
@@ -299,6 +303,8 @@ window.addEventListener('keydown', (e) => {
     setBlackout(!blackout);
   } else if (e.key === 'q' || e.key === 'Q') {
     setDof(!dofEnabled);
+  } else if (e.key === 'g' || e.key === 'G') {
+    act('showcase');
   } else if (e.key === 'r' || e.key === 'R') {
     act('restart');
   } else if (e.key === 'p' || e.key === 'P') {

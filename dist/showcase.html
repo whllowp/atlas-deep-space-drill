@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjMDEwNDA5Ii8+PHBhdGggZD0iTTMyIDUgNTUgMTh2MjhMMzIgNTkgOSA0NlYxOFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzVlZjJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTMyIDE3IDQ0IDM1SDIwWiIgZmlsbD0iIzVlZjJmZiIvPjwvc3ZnPg==" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ATLAS // 设计迭代展示 · 10 / 10</title>
+<style>:root {
+  --cyan: #5ef2ff;
+  --cyan-soft: #a9f8ff;
+  --blue: #2d7bff;
+  --magenta: #ff2e88;
+  --amber: #ffc857;
+  --green: #57ffb0;
+  --violet: #9a6bff;
+  --red: #ff3b4e;
+  --bg: #020609;
+  --panel: rgba(4, 16, 24, 0.72);
+  --line: rgba(94, 242, 255, 0.16);
+  --line-strong: rgba(94, 242, 255, 0.34);
+  --txt: #dff9ff;
+  --dim: #7fa6b4;
+  --font: "Bahnschrift", "DIN Alternate", "Segoe UI", "Microsoft YaHei UI", "PingFang SC", sans-serif;
+  --mono: "Consolas", "SFMono-Regular", "JetBrains Mono", ui-monospace, monospace;
+  --cut: 1.1rem;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--txt);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; }
+::selection { background: rgba(94, 242, 255, 0.28); color: #fff; }
+
+/* ------------------------------------------------------------------ BACKDROP */
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(65% 45% at 18% 0%, rgba(22, 96, 128, 0.24), transparent 65%),
+    radial-gradient(55% 40% at 88% 12%, rgba(120, 18, 82, 0.16), transparent 70%),
+    radial-gradient(70% 50% at 50% 108%, rgba(12, 64, 88, 0.2), transparent 70%),
+    linear-gradient(180deg, #02070c, #010408 60%, #02070c);
+}
+.bg-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(94, 242, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(94, 242, 255, 0.045) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(90% 80% at 50% 20%, #000 0%, transparent 78%);
+}
+.bg-grid::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, rgba(120, 240, 255, 0.022) 0 1px, transparent 1px 4px);
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+}
+.noise {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.16;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+/* --------------------------------------------------------------------- NAV */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem clamp(1rem, 3.2vw, 3.2rem);
+  background: linear-gradient(180deg, rgba(2, 8, 12, 0.92), rgba(2, 8, 12, 0.55) 70%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(94, 242, 255, 0.1);
+}
+.nav-brand { display: flex; align-items: center; gap: 0.75rem; letter-spacing: 0.28em; font-size: 0.82rem; color: #eafcff; }
+.nav-brand svg { width: 1.8rem; height: 1.8rem; color: var(--cyan); filter: drop-shadow(0 0 8px rgba(94, 242, 255, 0.5)); }
+.nav-brand b { font-weight: 600; }
+.nav-brand span { color: var(--cyan); font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.16em; border: 1px solid rgba(94, 242, 255, 0.28); padding: 0.15rem 0.4rem; }
+.nav-links { display: flex; gap: 1.4rem; font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.18em; color: var(--dim); }
+.nav-links a { transition: 0.2s ease; }
+.nav-links a:hover { color: var(--cyan); }
+.nav-actions { display: flex; gap: 0.5rem; }
+
+/* ------------------------------------------------------------------ BUTTONS */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.7rem 1.25rem;
+  font-family: var(--font);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: #eafcff;
+  background: linear-gradient(180deg, rgba(18, 70, 90, 0.85), rgba(6, 26, 38, 0.9));
+  border: 1px solid rgba(94, 242, 255, 0.45);
+  clip-path: polygon(0 0, calc(100% - 0.7rem) 0, 100% 0.7rem, 100% 100%, 0.7rem 100%, 0 0.7rem);
+  cursor: pointer;
+  transition: 0.22s ease;
+}
+.btn:hover { border-color: var(--cyan); box-shadow: 0 0 24px rgba(94, 242, 255, 0.25); transform: translateY(-1px); }
+.btn.primary { background: linear-gradient(180deg, rgba(24, 116, 140, 0.95), rgba(5, 36, 50, 0.95)); box-shadow: 0 0 22px rgba(94, 242, 255, 0.16); }
+.btn.ghost { background: rgba(3, 12, 18, 0.55); border-color: rgba(94, 242, 255, 0.2); color: #b7dce8; font-weight: 400; }
+.btn.small { padding: 0.5rem 0.85rem; font-size: 0.68rem; }
+.btn .ico { color: var(--cyan); font-size: 0.9em; }
+
+/* -------------------------------------------------------------------- HERO */
+main { position: relative; }
+.hero {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: clamp(2rem, 5vw, 5rem);
+  align-items: center;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: clamp(3.5rem, 7vw, 7rem) clamp(1rem, 3.2vw, 3.2rem) clamp(3rem, 5vw, 5rem);
+}
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.32em;
+  color: var(--cyan);
+}
+.kicker::before { content: ""; width: 2.6rem; height: 1px; background: linear-gradient(90deg, var(--cyan), transparent); }
+h1 {
+  margin: 1.1rem 0 1.2rem;
+  font-size: clamp(2.8rem, 5.8vw, 5.6rem);
+  line-height: 0.98;
+  letter-spacing: -0.01em;
+  font-weight: 700;
+}
+h1 em { font-style: normal; color: transparent; background: linear-gradient(100deg, var(--cyan) 10%, #a7f6ff 45%, var(--magenta) 110%); -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 0 28px rgba(94, 242, 255, 0.22)); }
+.hero-lead { max-width: 39rem; color: #a9c9d4; font-size: clamp(0.92rem, 1.1vw, 1.05rem); line-height: 1.85; letter-spacing: 0.02em; }
+.hero-lead b { color: #eafcff; font-weight: 600; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 1.8rem; }
+.hero-meta { display: flex; flex-wrap: wrap; gap: 1.4rem; margin-top: 2rem; padding-top: 1.2rem; border-top: 1px solid var(--line); }
+.hero-meta div { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.16em; color: var(--dim); }
+.hero-meta b { display: block; margin-top: 0.25rem; font-family: var(--font); font-size: 0.9rem; letter-spacing: 0.08em; color: var(--cyan-soft); font-weight: 500; }
+
+.hero-visual { position: relative; }
+.screen-frame {
+  position: relative;
+  padding: 0.65rem;
+  background: linear-gradient(155deg, rgba(10, 32, 42, 0.9), rgba(2, 8, 12, 0.95));
+  border: 1px solid rgba(94, 242, 255, 0.35);
+  clip-path: polygon(0 1.4rem, 1.4rem 0, 100% 0, 100% calc(100% - 1.4rem), calc(100% - 1.4rem) 100%, 0 100%);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 60px rgba(20, 150, 190, 0.12);
+}
+.screen-frame::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), var(--magenta), transparent);
+}
+.screen-frame img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; filter: saturate(1.05) contrast(1.03); }
+.screen-tag {
+  position: absolute;
+  left: 0.9rem; top: 0.9rem;
+  display: flex; align-items: center; gap: 0.4rem;
+  padding: 0.28rem 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.18em;
+  color: #dffbff;
+  background: rgba(1, 6, 10, 0.7);
+  border: 1px solid rgba(94, 242, 255, 0.3);
+}
+.screen-tag i { width: 0.35rem; height: 0.35rem; border-radius: 50%; background: var(--red); box-shadow: 0 0 8px var(--red); animation: blink 1.4s steps(1) infinite; }
+.screen-meta {
+  position: absolute;
+  right: 0.9rem; bottom: 0.9rem;
+  font-family: var(--mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  color: rgba(180, 235, 245, 0.68);
+  background: rgba(1, 6, 10, 0.65);
+  padding: 0.25rem 0.45rem;
+  border: 1px solid rgba(94, 242, 255, 0.18);
+}
+.hero-caption { display: flex; justify-content: space-between; gap: 1rem; margin-top: 0.8rem; font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.14em; color: var(--dim); }
+.hero-caption span:last-child { color: rgba(94, 242, 255, 0.65); }
+@keyframes blink { 50% { opacity: 0.2; } }
+
+/* ------------------------------------------------------------------- STATS */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 3.2vw, 3.2rem);
+}
+.stat {
+  padding: 1.2rem 1.3rem;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(5, 18, 26, 0.6), rgba(2, 8, 12, 0.15));
+}
+.stat:last-child { border-right: 1px solid var(--line); }
+.stat b { display: block; font-family: var(--mono); font-size: clamp(1.6rem, 2.4vw, 2.5rem); font-weight: 500; color: var(--cyan); letter-spacing: 0.02em; }
+.stat b small { font-size: 0.45em; color: var(--dim); }
+.stat span { display: block; margin-top: 0.35rem; font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.18em; color: var(--dim); }
+
+/* ------------------------------------------------------------------ SECTION */
+.section {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: clamp(4rem, 8vw, 7.5rem) clamp(1rem, 3.2vw, 3.2rem) 0;
+}
+.section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 2rem; margin-bottom: 2.2rem; }
+.section-kicker { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.3em; color: var(--cyan); }
+.section-head h2 { margin: 0.55rem 0 0; font-size: clamp(1.8rem, 3.2vw, 2.9rem); line-height: 1.12; letter-spacing: 0.01em; }
+.section-head p { max-width: 34rem; margin: 0; color: var(--dim); font-size: 0.86rem; line-height: 1.8; }
+.section-index { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.2em; color: rgba(94, 242, 255, 0.45); white-space: nowrap; }
+
+/* -------------------------------------------------------------------- SPLIT */
+.split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.split-card {
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(170deg, rgba(6, 22, 32, 0.82), rgba(2, 8, 12, 0.65));
+  border: 1px solid var(--line);
+  clip-path: polygon(0 var(--cut), var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%);
+  overflow: hidden;
+  transition: 0.3s ease;
+}
+.split-card:hover { border-color: rgba(94, 242, 255, 0.4); transform: translateY(-3px); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4); }
+.split-preview { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); }
+.split-preview img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; transition: 0.6s ease; }
+.split-card:hover .split-preview img { transform: scale(1.025); }
+.split-preview::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(2, 8, 12, 0.85)); }
+.split-label { position: absolute; top: 0.85rem; left: 0.85rem; z-index: 1; font-family: var(--mono); font-size: 0.56rem; letter-spacing: 0.18em; color: var(--cyan); background: rgba(1, 6, 10, 0.72); border: 1px solid rgba(94, 242, 255, 0.28); padding: 0.24rem 0.45rem; }
+.split-body { padding: 1.1rem 1.2rem 1.3rem; display: flex; flex-direction: column; gap: 0.7rem; flex: 1; }
+.split-body h3 { margin: 0; font-size: 1.2rem; letter-spacing: 0.04em; }
+.split-body p { margin: 0; color: var(--dim); font-size: 0.78rem; line-height: 1.75; }
+.split-body .btn { align-self: flex-start; margin-top: auto; }
+.split-points { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.split-points span { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.08em; color: rgba(170, 220, 232, 0.8); border: 1px solid rgba(94, 242, 255, 0.14); padding: 0.18rem 0.4rem; }
+
+.live-demo { margin-top: 1rem; border: 1px solid var(--line); background: rgba(3, 12, 18, 0.55); clip-path: polygon(0 var(--cut), var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%); }
+.live-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.2rem; border-bottom: 1px solid rgba(94, 242, 255, 0.1); }
+.live-head h3 { margin: 0; font-size: 1rem; letter-spacing: 0.1em; }
+.live-head h3 em { font-style: normal; font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.2em; color: var(--dim); margin-left: 0.6rem; }
+.live-head p { margin: 0.25rem 0 0; font-size: 0.7rem; color: var(--dim); }
+.live-frames { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; min-height: 380px; background: rgba(94, 242, 255, 0.08); }
+.live-screen { position: relative; overflow: hidden; min-height: 380px; background: #010408; }
+.live-screen iframe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1280px;
+  height: 900px;
+  border: 0;
+  display: block;
+  background: #010408;
+  transform-origin: 0 0;
+}
+.live-placeholder {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 380px;
+  background:
+    radial-gradient(60% 80% at 50% 40%, rgba(12, 56, 74, 0.4), transparent 70%),
+    repeating-linear-gradient(90deg, transparent 0 39px, rgba(94, 242, 255, 0.04) 39px 40px),
+    repeating-linear-gradient(0deg, transparent 0 39px, rgba(94, 242, 255, 0.04) 39px 40px);
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+}
+.live-placeholder b { color: var(--cyan); font-family: var(--font); font-size: 1rem; letter-spacing: 0.12em; }
+
+/* --------------------------------------------------------------- ITERATIONS */
+.iteration-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.iter {
+  --accent: var(--cyan);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+  padding: 1.2rem 1.25rem 1.1rem;
+  background: linear-gradient(165deg, rgba(6, 22, 32, 0.82), rgba(2, 8, 12, 0.65));
+  border: 1px solid var(--line);
+  clip-path: polygon(0 var(--cut), var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%);
+  overflow: hidden;
+  transition: 0.3s ease;
+}
+.iter::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); box-shadow: 0 0 14px var(--accent); }
+.iter:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 22px 60px rgba(0, 0, 0, 0.38); }
+.iter-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.18em; color: var(--dim); }
+.iter-top span { font-size: 1.55rem; line-height: 1; color: var(--accent); font-weight: 500; letter-spacing: 0.02em; }
+.iter h3 { margin: 0.85rem 0 0.45rem; font-size: 1.12rem; letter-spacing: 0.05em; }
+.iter p { margin: 0; color: var(--dim); font-size: 0.76rem; line-height: 1.7; }
+.iter-tags { display: flex; flex-wrap: wrap; gap: 0.32rem; margin-top: auto; padding-top: 0.9rem; }
+.iter-tags span { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.08em; color: rgba(170, 220, 232, 0.75); border: 1px solid rgba(94, 242, 255, 0.13); padding: 0.16rem 0.38rem; }
+
+/* mini visuals inside iteration cards */
+.mini { position: relative; margin-top: 0.95rem; height: 104px; border: 1px solid rgba(94, 242, 255, 0.12); background: rgba(1, 6, 10, 0.55); overflow: hidden; }
+.mini::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(94, 242, 255, 0.035) 2px 3px); pointer-events: none; }
+.mini-frame .rail { position: absolute; top: 8px; bottom: 8px; width: 3px; background: linear-gradient(180deg, transparent, var(--accent), transparent); opacity: 0.6; }
+.mini-frame .rail.l { left: 10px; }
+.mini-frame .rail.r { right: 10px; }
+.mini-frame .bar { position: absolute; top: 8px; left: 28px; right: 28px; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.55; }
+.mini-frame .seat { position: absolute; left: 18px; bottom: 12px; font-family: var(--mono); font-size: 0.42rem; letter-spacing: 0.14em; color: rgba(94, 242, 255, 0.45); writing-mode: vertical-rl; }
+.mini-frame .core { position: absolute; left: 50%; top: 50%; width: 36px; height: 36px; transform: translate(-50%, -50%) rotate(45deg); border: 1px solid var(--accent); box-shadow: 0 0 16px rgba(94, 242, 255, 0.3); }
+.mini-energy .label { position: absolute; top: 14px; left: 14px; font-family: var(--mono); font-size: 0.45rem; letter-spacing: 0.16em; color: var(--dim); }
+.mini-energy .meter { position: absolute; left: 14px; right: 14px; top: 36px; height: 6px; border: 1px solid rgba(94, 242, 255, 0.2); }
+.mini-energy .meter i { display: block; width: 83%; height: 100%; background: linear-gradient(90deg, #1f9cb5, var(--cyan)); box-shadow: 0 0 10px rgba(94, 242, 255, 0.4); }
+.mini-energy .lamps { position: absolute; left: 14px; right: 14px; bottom: 16px; display: flex; gap: 6px; }
+.mini-energy .lamps i { flex: 1; height: 12px; border: 1px solid rgba(94, 242, 255, 0.16); position: relative; font-family: var(--mono); font-size: 0.36rem; color: var(--dim); display: flex; align-items: center; justify-content: center; }
+.mini-energy .lamps i:first-child { color: var(--red); border-color: rgba(255, 59, 78, 0.4); }
+.mini-cards { display: flex; gap: 6px; padding: 12px; align-items: stretch; }
+.mini-cards i { flex: 1; border: 1px solid rgba(94, 242, 255, 0.2); background: linear-gradient(160deg, rgba(10, 34, 46, 0.9), rgba(3, 12, 18, 0.9)); position: relative; font-style: normal; }
+.mini-cards i::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); }
+.mini-cards i::after { content: "20"; position: absolute; right: 5px; top: 5px; font-family: var(--mono); font-size: 0.4rem; color: var(--amber); }
+.mini-cards i:nth-child(2)::after { content: "25"; }
+.mini-cards i:nth-child(3)::after { content: "35"; }
+.mini-cool .card { position: absolute; left: 18px; top: 18px; width: 72px; height: 68px; border: 1px solid rgba(94, 242, 255, 0.22); background: rgba(5, 18, 26, 0.9); }
+.mini-cool .card::before { content: "WAF 限流"; position: absolute; left: 8px; top: 8px; font-size: 0.5rem; color: #dffbff; }
+.mini-cool .cd { position: absolute; left: 0; right: 0; top: 0; height: 62%; background: rgba(1, 5, 9, 0.72); border-bottom: 1px solid rgba(94, 242, 255, 0.3); }
+.mini-cool .cd::after { content: "6.2s"; position: absolute; left: 0; right: 0; bottom: 5px; text-align: center; font-family: var(--mono); font-size: 0.46rem; color: var(--cyan); }
+.mini-cool .glow { position: absolute; right: 14px; top: 22px; width: 34px; height: 34px; border: 1px solid var(--accent); transform: rotate(45deg); box-shadow: 0 0 18px rgba(94, 242, 255, 0.35); }
+.mini-intent { padding: 14px; }
+.mini-intent .chip { display: flex; align-items: center; gap: 8px; border: 1px solid rgba(255, 59, 78, 0.4); padding: 7px 8px; background: rgba(40, 6, 14, 0.5); }
+.mini-intent .chip b { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.1em; color: #ffd7dc; }
+.mini-intent .chip span { margin-left: auto; font-family: var(--mono); font-size: 0.5rem; color: var(--red); }
+.mini-intent .bar { margin-top: 8px; height: 3px; background: rgba(255, 59, 78, 0.15); }
+.mini-intent .bar i { display: block; width: 68%; height: 100%; background: var(--red); box-shadow: 0 0 8px var(--red); }
+.mini-intent small { display: block; margin-top: 7px; font-family: var(--mono); font-size: 0.4rem; letter-spacing: 0.12em; color: var(--dim); }
+.mini-comms { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.mini-comms .wave { display: flex; align-items: flex-end; gap: 2px; height: 16px; margin-bottom: 3px; }
+.mini-comms .wave i { flex: 1; background: var(--cyan); height: 30%; opacity: 0.6; }
+.mini-comms .wave i:nth-child(2n) { height: 78%; }
+.mini-comms .wave i:nth-child(3n) { height: 48%; }
+.mini-comms .line { display: flex; gap: 6px; font-family: var(--mono); font-size: 0.42rem; letter-spacing: 0.04em; color: rgba(160, 210, 222, 0.8); }
+.mini-comms .line time { color: rgba(90, 140, 155, 0.7); }
+.mini-comms .line.warn { color: var(--amber); }
+.mini-radar { display: grid; place-items: center; }
+.mini-radar .scope { position: relative; width: 78px; height: 78px; border-radius: 50%; border: 1px solid rgba(94, 242, 255, 0.35); background: radial-gradient(circle, rgba(8, 32, 44, 0.8), rgba(1, 6, 10, 0.9)); box-shadow: inset 0 0 18px rgba(94, 242, 255, 0.12); }
+.mini-radar .scope::before { content: ""; position: absolute; inset: 12px; border-radius: 50%; border: 1px solid rgba(94, 242, 255, 0.2); }
+.mini-radar .scope::after { content: ""; position: absolute; left: 50%; top: 50%; width: 50%; height: 1px; background: linear-gradient(90deg, var(--cyan), transparent); transform-origin: left center; transform: rotate(-38deg); }
+.mini-radar .dot { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+.mini-radar .dot:nth-child(1) { left: 22px; top: 26px; }
+.mini-radar .dot:nth-child(2) { right: 18px; top: 38px; background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+.mini-radar .dot:nth-child(3) { left: 34px; bottom: 16px; background: var(--red); box-shadow: 0 0 6px var(--red); }
+.mini-system { display: flex; gap: 8px; padding: 12px; align-items: center; }
+.mini-system .swatch { width: 22px; height: 54px; border: 1px solid rgba(94, 242, 255, 0.2); }
+.mini-system .panel { flex: 1; height: 58px; border: 1px solid rgba(94, 242, 255, 0.22); position: relative; }
+.mini-system .panel::before, .mini-system .panel::after { content: ""; position: absolute; width: 9px; height: 9px; border-color: var(--cyan); border-style: solid; }
+.mini-system .panel::before { left: 5px; top: 5px; border-width: 1px 0 0 1px; }
+.mini-system .panel::after { right: 5px; bottom: 5px; border-width: 0 1px 1px 0; }
+.mini-result { display: flex; align-items: center; gap: 12px; padding: 12px; }
+.mini-result .rank { font-family: var(--mono); font-size: 2.4rem; font-weight: 700; color: transparent; background: linear-gradient(180deg, #fff, var(--cyan) 50%, #086b84); -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 0 14px rgba(94, 242, 255, 0.35)); }
+.mini-result .chips { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.mini-result .chips i { font-style: normal; font-family: var(--mono); font-size: 0.42rem; color: rgba(160, 210, 222, 0.8); border-left: 1px solid var(--cyan); padding-left: 5px; }
+.mini-responsive { display: flex; align-items: flex-end; gap: 8px; padding: 12px; }
+.mini-responsive i { display: block; border: 1px solid rgba(94, 242, 255, 0.25); background: rgba(94, 242, 255, 0.04); position: relative; }
+.mini-responsive i::after { content: attr(data-label); position: absolute; left: 0; right: 0; bottom: -14px; text-align: center; font-family: var(--mono); font-style: normal; font-size: 0.36rem; color: var(--dim); }
+.mini-responsive i:nth-child(1) { width: 46px; height: 32px; }
+.mini-responsive i:nth-child(2) { width: 64px; height: 44px; }
+.mini-responsive i:nth-child(3) { width: 88px; height: 62px; border-color: var(--cyan); }
+
+/* ------------------------------------------------------------------- SYSTEM */
+.system-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 1rem; }
+.system-card { padding: 1.4rem 1.5rem; background: linear-gradient(165deg, rgba(6, 22, 32, 0.8), rgba(2, 8, 12, 0.6)); border: 1px solid var(--line); clip-path: polygon(0 var(--cut), var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%); }
+.system-card h3 { margin: 0 0 0.4rem; font-size: 1rem; letter-spacing: 0.08em; }
+.system-card p { margin: 0; color: var(--dim); font-size: 0.76rem; line-height: 1.7; }
+.swatches { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1.1rem; }
+.swatch { width: 4.4rem; }
+.swatch i { display: block; height: 3.2rem; border: 1px solid rgba(255, 255, 255, 0.12); }
+.swatch span { display: block; margin-top: 0.35rem; font-family: var(--mono); font-size: 0.5rem; letter-spacing: 0.08em; color: var(--dim); }
+.type-sample { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.type-sample b { display: block; font-size: 1.7rem; letter-spacing: 0.01em; }
+.type-sample span { display: block; margin-top: 0.35rem; font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.18em; color: var(--dim); }
+.token-list { display: flex; flex-direction: column; gap: 0.55rem; margin-top: 1rem; }
+.token-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(94, 242, 255, 0.08); font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.06em; color: var(--dim); }
+.token-row b { color: var(--cyan-soft); font-weight: 500; }
+
+/* ------------------------------------------------------------------- QUOTE */
+.quote {
+  max-width: 1440px;
+  margin: clamp(4rem, 7vw, 6rem) auto 0;
+  padding: 0 clamp(1rem, 3.2vw, 3.2rem);
+}
+.quote-inner {
+  position: relative;
+  padding: clamp(1.6rem, 3vw, 2.6rem);
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(70% 120% at 0% 0%, rgba(20, 100, 130, 0.16), transparent 60%),
+    linear-gradient(165deg, rgba(5, 18, 26, 0.8), rgba(2, 8, 12, 0.5));
+  clip-path: polygon(0 var(--cut), var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%);
+}
+.quote-inner p { margin: 0; max-width: 58rem; font-size: clamp(1.05rem, 1.7vw, 1.45rem); line-height: 1.7; color: #cfebf2; }
+.quote-inner p em { font-style: normal; color: var(--cyan); }
+.quote-inner span { display: block; margin-top: 1rem; font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.22em; color: var(--dim); }
+
+/* ------------------------------------------------------------------- FOOTER */
+.footer {
+  max-width: 1440px;
+  margin: 0 auto;
+  margin-top: clamp(4rem, 7vw, 6rem);
+  padding: 2.2rem clamp(1rem, 3.2vw, 3.2rem) 2.6rem;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+}
+.footer-brand { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.2em; color: var(--dim); }
+.footer-brand b { color: var(--cyan); font-weight: 500; }
+.footer-links { display: flex; flex-wrap: wrap; gap: 1.2rem; font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.14em; color: var(--dim); }
+.footer-links a:hover { color: var(--cyan); }
+
+/* ------------------------------------------------------------------- REVEAL */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.reveal.in { opacity: 1; transform: none; }
+
+/* ----------------------------------------------------------------- RESPONSIVE */
+@media (max-width: 1100px) {
+  .hero { grid-template-columns: 1fr; }
+  .hero-visual { max-width: 760px; }
+  .split-grid, .iteration-grid, .system-grid { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .stat:nth-child(3) { border-top: 0; }
+  .stat:nth-child(4) { border-top: 0; }
+  .live-frames { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .nav-links { display: none; }
+  .nav { padding: 0.75rem 1rem; }
+  .nav-brand { gap: 0.5rem; }
+  .nav-brand b { font-size: 0.68rem; letter-spacing: 0.12em; white-space: nowrap; }
+  .nav-brand span { display: none; }
+  .nav-actions .btn.ghost { display: none; }
+  .btn { white-space: nowrap; }
+  .hero { padding-top: 2.6rem; }
+  .kicker { font-size: 0.55rem; letter-spacing: 0.16em; line-height: 1.5; }
+  .hero-actions .btn { flex: 1; }
+  .section-head { flex-direction: column; align-items: flex-start; gap: 0.8rem; }
+  .section-head p { max-width: none; }
+  .iteration-grid { gap: 0.8rem; }
+  .live-demo { display: none; }
+  .footer { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="noise"></div>
+
+<header class="nav">
+  <a class="nav-brand" href="#top">
+    <svg viewBox="0 0 48 48" aria-hidden="true">
+      <path d="M24 3 L43 14 V34 L24 45 L5 34 V14 Z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M24 10 L36 17 V31 L24 38 L12 31 V17 Z" fill="none" stroke="currentColor" stroke-width="1" opacity=".55"/>
+      <path d="M24 16 L30 27 H18 Z" fill="currentColor" opacity=".9"/>
+    </svg>
+    <b>ATLAS // 设计展示</b><span>10 / 10</span>
+  </a>
+  <nav class="nav-links">
+    <a href="#split">双屏演示</a>
+    <a href="#iterations">10 次迭代</a>
+    <a href="#system">设计系统</a>
+  </nav>
+  <div class="nav-actions">
+    <a class="btn ghost small" href="./console.html">指挥席 ↗</a>
+    <a class="btn primary small" href="./index.html">进入大厅 ↗</a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="hero-copy reveal">
+      <div class="kicker">DESIGN ITERATION REPORT · DRILL-2077</div>
+      <h1>把运维演练<br><em>做成驾驶舱</em></h1>
+      <p class="hero-lead">
+        从“拓扑图 + 指标卡”的运维大屏，走向 <b>驾驶舱 HUD + 卡牌构筑</b>：
+        星港与赛博都市是战场，处置手牌是策略，电影模式是演出。
+        10 次设计迭代，全部落在可运行的原型里。
+      </p>
+      <div class="hero-actions">
+        <a class="btn primary" href="./index.html"><span class="ico">▶</span> 打开实时大厅</a>
+        <a class="btn ghost" href="#iterations">查看 10 次迭代 ↓</a>
+      </div>
+      <div class="hero-meta">
+        <div>DIRECTION<b>驾驶舱 + 卡牌</b></div>
+        <div>THEMES<b>深空 / 赛博都市</b></div>
+        <div>SCREENS<b>大厅 + 指挥席</b></div>
+        <div>CINEMA<b>2.39 : 1</b></div>
+      </div>
+    </div>
+
+    <figure class="hero-visual reveal">
+      <div class="screen-frame">
+        <span class="screen-tag"><i></i> LIVE DECK · P1</span>
+        <img src="../docs/cockpit.jpg" alt="ATLAS 驾驶舱 + 处置手牌界面" />
+        <span class="screen-meta">1920 × 1080 · WEBGL</span>
+      </div>
+      <figcaption class="hero-caption">
+        <span>FIG.01 / OPS DECK + C2 COMMS + THREAT INTENT</span>
+        <span>SHOT 2026-11</span>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section class="stats reveal" aria-label="项目数据">
+    <div class="stat"><b>10<small>/10</small></b><span>DESIGN ITERATIONS</span></div>
+    <div class="stat"><b>05</b><span>TACTIC CARDS</span></div>
+    <div class="stat"><b>02</b><span>3D THEMES</span></div>
+    <div class="stat"><b>4K</b><span>RESPONSIVE READY</span></div>
+  </section>
+
+  <section id="split" class="section">
+    <div class="section-head reveal">
+      <div>
+        <div class="section-kicker">01 / TWO-SCREEN COMMAND</div>
+        <h2>大厅负责“看见”，指挥席负责“处置”</h2>
+      </div>
+      <p>同一个状态机，两个视角。大厅用 3D 战场和驾驶舱 HUD 讲态势；指挥席用阶段、指标、节点和命令完成控制。同源 BroadcastChannel，或局域网 SSE 中继。</p>
+    </div>
+
+    <div class="split-grid">
+      <article class="split-card reveal">
+        <div class="split-preview">
+          <span class="split-label">HALL / 大厅大屏</span>
+          <img src="../docs/city.jpg" alt="赛博都市主题大厅大屏" />
+        </div>
+        <div class="split-body">
+          <h3>大厅大屏 · 态势演出</h3>
+          <p>星港 / 赛博都市双主题、六节点矩阵、DDoS 波次、故障注入、Boss 决战与 S 级战报。右下角 OPS DECK 可直接出牌。</p>
+          <div class="split-points"><span>双主题</span><span>电影模式</span><span>5 张处置卡</span><span>4K</span></div>
+          <a class="btn primary small" href="./index.html">打开实时大厅 ↗</a>
+        </div>
+      </article>
+
+      <article class="split-card reveal">
+        <div class="split-preview">
+          <span class="split-label">CONSOLE / 指挥席</span>
+          <img src="../docs/console.jpg" alt="ATLAS 指挥席控制台" />
+        </div>
+        <div class="split-body">
+          <h3>指挥席 · 演控台</h3>
+          <p>独立页面，手机/副屏可用。启动、暂停、重播、切场景、电影模式、黑屏、HUD、跳转 P1–P3，全部通过同步总线下发。</p>
+          <div class="split-points"><span>SSE / Broadcast</span><span>4 Hz 状态</span><span>9 个命令</span><span>独立部署</span></div>
+          <a class="btn ghost small" href="./console.html">打开指挥席 ↗</a>
+        </div>
+      </article>
+    </div>
+
+    <div class="live-demo reveal">
+      <div class="live-head">
+        <div>
+          <h3>实时双屏演示 <em>LIVE SPLIT</em></h3>
+          <p>左侧 3D 大厅自动播放，右侧指挥席可实时控制。首次加载需要数秒。</p>
+        </div>
+        <button class="btn small primary" id="btnLive" type="button"><span class="ico">▶</span> 启动实时双屏</button>
+      </div>
+      <div class="live-frames" id="liveFrames">
+        <div class="live-placeholder">
+          <b>READY FOR LIVE LINK</b>
+          <span>点击右上角按钮加载 大厅 + 指挥席</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="iterations" class="section">
+    <div class="section-head reveal">
+      <div>
+        <div class="section-kicker">02 / TEN ITERATIONS</div>
+        <h2>10 次迭代，从座舱外壳到手牌博弈</h2>
+      </div>
+      <p>每次迭代都对应一个可见组件或可交互行为；不是静态效果图。</p>
+    </div>
+
+    <div class="iteration-grid">
+      <article class="iter reveal" style="--accent:#5ef2ff">
+        <div class="iter-top"><span>01</span><em>COCKPIT SHELL</em></div>
+        <h3>驾驶舱外壳</h3>
+        <p>座舱梁、玻璃反光、侧轨铆钉、SEAT 07 / C2 LINK 铭牌与底部仪表唇边，把 RTS 视角包进“我在现场”的座舱。</p>
+        <div class="mini mini-frame"><i class="rail l"></i><i class="rail r"></i><i class="bar"></i><b class="seat">SEAT 07 · PILOT</b><i class="core"></i></div>
+        <div class="iter-tags"><span>canopy</span><span>glass</span><span>seat plate</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#ffc857">
+        <div class="iter-top"><span>02</span><em>OPS DECK</em></div>
+        <h3>OPS DECK 甲板</h3>
+        <p>手牌区、OPS ENERGY、四盏 MASTER CAUTION 与 C2 通讯条，构成驾驶舱底部的操作台。</p>
+        <div class="mini mini-energy">
+          <span class="label">OPS ENERGY</span>
+          <div class="meter"><i></i></div>
+          <div class="lamps"><i>NET</i><i>DB</i><i>PWR</i><i>ATK</i></div>
+        </div>
+        <div class="iter-tags"><span>energy</span><span>caution</span><span>C2 link</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#57ffb0">
+        <div class="iter-top"><span>03</span><em>TACTIC HAND</em></div>
+        <h3>五张处置卡</h3>
+        <p>WAF 限流、弹性扩容、主备切换、封禁 IP、回滚版本；费用、冷却、说明与 1–5 快捷键。</p>
+        <div class="mini mini-cards"><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="iter-tags"><span>deck</span><span>cost</span><span>hotkeys</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#ff2e88">
+        <div class="iter-top"><span>04</span><em>CARD FEEDBACK</em></div>
+        <h3>出牌反馈与战术效果</h3>
+        <p>能量扣除、冷却遮罩/倒计时、出牌动画、屏幕闪光、日志/通讯回执；封禁 IP 会清空敌舰并爆出粒子。</p>
+        <div class="mini mini-cool"><div class="card"></div><div class="cd"></div><i class="glow"></i></div>
+        <div class="iter-tags"><span>cooldown</span><span>VFX</span><span>score</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#ff3b4e">
+        <div class="iter-top"><span>05</span><em>THREAT INTENT</em></div>
+        <h3>敌方意图面板</h3>
+        <p>P1 SYN FLOOD / P2 DB LOCK / P3 OMNI BEAM，倒计时与进度条；P3 进入红色告警态，像卡牌 Boss 的意图预告。</p>
+        <div class="mini mini-intent">
+          <div class="chip"><b>☣ SYN FLOOD</b><span>10.4 SEC</span></div>
+          <div class="bar"><i></i></div>
+          <small>1.2 Tbps 混合流量 · 冲击 WAF</small>
+        </div>
+        <div class="iter-tags"><span>intent</span><span>countdown</span><span>P3 alert</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#9a6bff">
+        <div class="iter-top"><span>06</span><em>C2 COMMS</em></div>
+        <h3>C2 通讯窗口</h3>
+        <p>滚动通话、打字机、波形与 LINK / ALERT / END 状态；阶段公告与出牌回执自动进入频道。</p>
+        <div class="mini mini-comms">
+          <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="line"><time>00:08</time><span>C2 频道建立 · 指挥席已接入</span></div>
+          <div class="line warn"><time>00:12</time><span>DDoS 洪峰来袭 · 1.2 Tbps</span></div>
+        </div>
+        <div class="iter-tags"><span>typewriter</span><span>waveform</span><span>priority</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#5ef2ff">
+        <div class="iter-top"><span>07</span><em>INSTRUMENTS</em></div>
+        <h3>雷达仪表盘</h3>
+        <p>战术终端右侧的扫描雷达：环、扇区、节点绿/黄/红点、敌对红点，P1/P2/P3 敌情数量不同。</p>
+        <div class="mini mini-radar">
+          <div class="scope"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+        </div>
+        <div class="iter-tags"><span>radar</span><span>nodes</span><span>hostile</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#ffc857">
+        <div class="iter-top"><span>08</span><em>DESIGN SYSTEM</em></div>
+        <h3>视觉系统统一</h3>
+        <p>切角 token、面板四角括线、相位 LED、链路状态灯；阶段条从标签升级为座舱 annunciator。</p>
+        <div class="mini mini-system">
+          <i class="swatch" style="background:linear-gradient(180deg,#5ef2ff,#123a48)"></i>
+          <i class="swatch" style="background:linear-gradient(180deg,#ffc857,#3a2a08)"></i>
+          <i class="swatch" style="background:linear-gradient(180deg,#ff2e88,#3a0a1e)"></i>
+          <div class="panel"></div>
+        </div>
+        <div class="iter-tags"><span>tokens</span><span>corners</span><span>annunciator</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#57ffb0">
+        <div class="iter-top"><span>09</span><em>AFTER ACTION</em></div>
+        <h3>结算与复盘</h3>
+        <p>S 评级虚线印章、积分滚动、本局出牌序列 chip、MVP 统计与一键复制战报，让“打完这一局”可复盘。</p>
+        <div class="mini mini-result">
+          <b class="rank">S</b>
+          <div class="chips"><i>⛨ WAF 限流 · 00:08</i><i>⚡ 弹性扩容 · 00:14</i><i>⊘ 封禁 IP · 00:21</i></div>
+        </div>
+        <div class="iter-tags"><span>S-rank</span><span>sequence</span><span>copy</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#2d7bff">
+        <div class="iter-top"><span>10</span><em>RESPONSIVE / CINEMA</em></div>
+        <h3>响应式与电影模式</h3>
+        <p>1280 / 1920 / 2560 / 4K 安全区；短屏收起 C2 与击杀播报；电影模式隐藏座舱，只留 2.39:1。</p>
+        <div class="mini mini-responsive"><i data-label="1024"></i><i data-label="1920"></i><i data-label="4K"></i></div>
+        <div class="iter-tags"><span>1280–4K</span><span>2.39:1</span><span>safe area</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section id="system" class="section">
+    <div class="section-head reveal">
+      <div>
+        <div class="section-kicker">03 / DESIGN TOKENS</div>
+        <h2>一套可复用的座舱视觉语言</h2>
+      </div>
+      <p>颜色、字体、切角与发光都来自同一套 token；新增面板只要复用 `.panel` / `--cut` / 状态色。</p>
+    </div>
+    <div class="system-grid">
+      <div class="system-card reveal">
+        <h3>Palette</h3>
+        <p>深空青为默认主色，琥珀用于能量/警示，品红用于敌对与 Boss，绿色只表示恢复与完成。</p>
+        <div class="swatches">
+          <div class="swatch"><i style="background:#5ef2ff"></i><span>CYAN / 5EF2FF</span></div>
+          <div class="swatch"><i style="background:#ffc857"></i><span>AMBER / FFC857</span></div>
+          <div class="swatch"><i style="background:#ff2e88"></i><span>MAGENTA / FF2E88</span></div>
+          <div class="swatch"><i style="background:#57ffb0"></i><span>GREEN / 57FFB0</span></div>
+          <div class="swatch"><i style="background:#9a6bff"></i><span>VIOLET / 9A6BFF</span></div>
+        </div>
+      </div>
+      <div class="system-card reveal">
+        <h3>Type & Tokens</h3>
+        <p>标题用 Bahnschrift / DIN，指标与标签用等宽字体；所有数字使用 tabular-nums 对齐。</p>
+        <div class="type-sample"><b>ATLAS // 防区守住了。</b><span>DISPLAY · 700 · 0.02EM</span></div>
+        <div class="token-list">
+          <div class="token-row"><span>--cut</span><b>0.9em 面板切角</b></div>
+          <div class="token-row"><span>--line</span><b>rgba(94,242,255,.18)</b></div>
+          <div class="token-row"><span>--cyan</span><b>#5EF2FF 主信号</b></div>
+          <div class="token-row"><span>--amber</span><b>#FFC857 能量/警示</b></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="quote reveal">
+    <div class="quote-inner">
+      <p>“卡牌负责表达<b>策略选择</b>的博弈感，驾驶舱负责营造<b>我在指挥</b>的沉浸感；两者结合，既有深度又有视觉冲击力，而且完全跳出了 RTS 的范式。”</p>
+      <span>— 设计风格.md / 方案 A + C 推荐组合</span>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="footer-brand"><b>ATLAS // DRILL-2077</b> · 10 ITERATIONS · WEBGL PROTOTYPE</div>
+  <div class="footer-links">
+    <a href="./index.html">大厅</a>
+    <a href="./console.html">指挥席</a>
+    <a href="https://github.com/whllowp/atlas-deep-space-drill" target="_blank" rel="noreferrer">GitHub ↗</a>
+    <a href="../docs/design-iterations.md">迭代记录 ↗</a>
+  </div>
+</footer>
+
+<script>(function () {
+  var reveals = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    reveals.forEach(function (el) { io.observe(el); });
+  } else {
+    reveals.forEach(function (el) { el.classList.add('in'); });
+  }
+
+  var btn = document.getElementById('btnLive');
+  var frames = document.getElementById('liveFrames');
+  var live = false;
+
+  function placeholder() {
+    frames.innerHTML = '<div class="live-placeholder"><b>READY FOR LIVE LINK</b><span>点击右上角按钮加载 大厅 + 指挥席</span></div>';
+  }
+
+  function fitFrames() {
+    document.querySelectorAll('.live-screen').forEach(function (wrap) {
+      var frame = wrap.querySelector('iframe');
+      if (!frame) return;
+      var scale = wrap.clientWidth / 1280;
+      frame.style.transform = 'scale(' + scale + ')';
+      wrap.style.height = Math.round(900 * scale) + 'px';
+    });
+  }
+
+  function setLive(on) {
+    live = on;
+    if (!on) {
+      placeholder();
+      btn.innerHTML = '<span class="ico">▶</span> 启动实时双屏';
+      btn.classList.add('primary');
+      return;
+    }
+    frames.innerHTML = [
+      '<div class="live-screen"><iframe src="./index.html?hud=0&auto=1" title="大厅实时画面" allow="autoplay; fullscreen"></iframe></div>',
+      '<div class="live-screen"><iframe src="./console.html" title="指挥席实时控制台" allow="autoplay"></iframe></div>'
+    ].join('');
+    btn.innerHTML = '■ 关闭实时双屏';
+    btn.classList.remove('primary');
+    fitFrames();
+  }
+
+  if (btn) {
+    btn.addEventListener('click', function () { setLive(!live); });
+  }
+  window.addEventListener('resize', fitFrames);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjMDEwNDA5Ii8+PHBhdGggZD0iTTMyIDUgNTUgMTh2MjhMMzIgNTkgOSA0NlYxOFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzVlZjJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTMyIDE3IDQ0IDM1SDIwWiIgZmlsbD0iIzVlZjJmZiIvPjwvc3ZnPg==" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ATLAS // 设计迭代展示 · 10 / 10</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="noise"></div>
+
+<header class="nav">
+  <a class="nav-brand" href="#top">
+    <svg viewBox="0 0 48 48" aria-hidden="true">
+      <path d="M24 3 L43 14 V34 L24 45 L5 34 V14 Z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M24 10 L36 17 V31 L24 38 L12 31 V17 Z" fill="none" stroke="currentColor" stroke-width="1" opacity=".55"/>
+      <path d="M24 16 L30 27 H18 Z" fill="currentColor" opacity=".9"/>
+    </svg>
+    <b>ATLAS // 设计展示</b><span>10 / 10</span>
+  </a>
+  <nav class="nav-links">
+    <a href="#split">双屏演示</a>
+    <a href="#iterations">10 次迭代</a>
+    <a href="#system">设计系统</a>
+  </nav>
+  <div class="nav-actions">
+    <a class="btn ghost small" href="./console.html">指挥席 ↗</a>
+    <a class="btn primary small" href="./index.html">进入大厅 ↗</a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="hero-copy reveal">
+      <div class="kicker">DESIGN ITERATION REPORT · DRILL-2077</div>
+      <h1>把运维演练<br><em>做成驾驶舱</em></h1>
+      <p class="hero-lead">
+        从“拓扑图 + 指标卡”的运维大屏，走向 <b>驾驶舱 HUD + 卡牌构筑</b>：
+        星港与赛博都市是战场，处置手牌是策略，电影模式是演出。
+        10 次设计迭代，全部落在可运行的原型里。
+      </p>
+      <div class="hero-actions">
+        <a class="btn primary" href="./index.html"><span class="ico">▶</span> 打开实时大厅</a>
+        <a class="btn ghost" href="#iterations">查看 10 次迭代 ↓</a>
+      </div>
+      <div class="hero-meta">
+        <div>DIRECTION<b>驾驶舱 + 卡牌</b></div>
+        <div>THEMES<b>深空 / 赛博都市</b></div>
+        <div>SCREENS<b>大厅 + 指挥席</b></div>
+        <div>CINEMA<b>2.39 : 1</b></div>
+      </div>
+    </div>
+
+    <figure class="hero-visual reveal">
+      <div class="screen-frame">
+        <span class="screen-tag"><i></i> LIVE DECK · P1</span>
+        <img src="../docs/cockpit.jpg" alt="ATLAS 驾驶舱 + 处置手牌界面" />
+        <span class="screen-meta">1920 × 1080 · WEBGL</span>
+      </div>
+      <figcaption class="hero-caption">
+        <span>FIG.01 / OPS DECK + C2 COMMS + THREAT INTENT</span>
+        <span>SHOT 2026-11</span>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section class="stats reveal" aria-label="项目数据">
+    <div class="stat"><b>10<small>/10</small></b><span>DESIGN ITERATIONS</span></div>
+    <div class="stat"><b>05</b><span>TACTIC CARDS</span></div>
+    <div class="stat"><b>02</b><span>3D THEMES</span></div>
+    <div class="stat"><b>4K</b><span>RESPONSIVE READY</span></div>
+  </section>
+
+  <section id="split" class="section">
+    <div class="section-head reveal">
+      <div>
+        <div class="section-kicker">01 / TWO-SCREEN COMMAND</div>
+        <h2>大厅负责“看见”，指挥席负责“处置”</h2>
+      </div>
+      <p>同一个状态机，两个视角。大厅用 3D 战场和驾驶舱 HUD 讲态势；指挥席用阶段、指标、节点和命令完成控制。同源 BroadcastChannel，或局域网 SSE 中继。</p>
+    </div>
+
+    <div class="split-grid">
+      <article class="split-card reveal">
+        <div class="split-preview">
+          <span class="split-label">HALL / 大厅大屏</span>
+          <img src="../docs/city.jpg" alt="赛博都市主题大厅大屏" />
+        </div>
+        <div class="split-body">
+          <h3>大厅大屏 · 态势演出</h3>
+          <p>星港 / 赛博都市双主题、六节点矩阵、DDoS 波次、故障注入、Boss 决战与 S 级战报。右下角 OPS DECK 可直接出牌。</p>
+          <div class="split-points"><span>双主题</span><span>电影模式</span><span>5 张处置卡</span><span>4K</span></div>
+          <a class="btn primary small" href="./index.html">打开实时大厅 ↗</a>
+        </div>
+      </article>
+
+      <article class="split-card reveal">
+        <div class="split-preview">
+          <span class="split-label">CONSOLE / 指挥席</span>
+          <img src="../docs/console.jpg" alt="ATLAS 指挥席控制台" />
+        </div>
+        <div class="split-body">
+          <h3>指挥席 · 演控台</h3>
+          <p>独立页面，手机/副屏可用。启动、暂停、重播、切场景、电影模式、黑屏、HUD、跳转 P1–P3，全部通过同步总线下发。</p>
+          <div class="split-points"><span>SSE / Broadcast</span><span>4 Hz 状态</span><span>9 个命令</span><span>独立部署</span></div>
+          <a class="btn ghost small" href="./console.html">打开指挥席 ↗</a>
+        </div>
+      </article>
+    </div>
+
+    <div class="live-demo reveal">
+      <div class="live-head">
+        <div>
+          <h3>实时双屏演示 <em>LIVE SPLIT</em></h3>
+          <p>左侧 3D 大厅自动播放，右侧指挥席可实时控制。首次加载需要数秒。</p>
+        </div>
+        <button class="btn small primary" id="btnLive" type="button"><span class="ico">▶</span> 启动实时双屏</button>
+      </div>
+      <div class="live-frames" id="liveFrames">
+        <div class="live-placeholder">
+          <b>READY FOR LIVE LINK</b>
+          <span>点击右上角按钮加载 大厅 + 指挥席</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="iterations" class="section">
+    <div class="section-head reveal">
+      <div>
+        <div class="section-kicker">02 / TEN ITERATIONS</div>
+        <h2>10 次迭代，从座舱外壳到手牌博弈</h2>
+      </div>
+      <p>每次迭代都对应一个可见组件或可交互行为；不是静态效果图。</p>
+    </div>
+
+    <div class="iteration-grid">
+      <article class="iter reveal" style="--accent:#5ef2ff">
+        <div class="iter-top"><span>01</span><em>COCKPIT SHELL</em></div>
+        <h3>驾驶舱外壳</h3>
+        <p>座舱梁、玻璃反光、侧轨铆钉、SEAT 07 / C2 LINK 铭牌与底部仪表唇边，把 RTS 视角包进“我在现场”的座舱。</p>
+        <div class="mini mini-frame"><i class="rail l"></i><i class="rail r"></i><i class="bar"></i><b class="seat">SEAT 07 · PILOT</b><i class="core"></i></div>
+        <div class="iter-tags"><span>canopy</span><span>glass</span><span>seat plate</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#ffc857">
+        <div class="iter-top"><span>02</span><em>OPS DECK</em></div>
+        <h3>OPS DECK 甲板</h3>
+        <p>手牌区、OPS ENERGY、四盏 MASTER CAUTION 与 C2 通讯条，构成驾驶舱底部的操作台。</p>
+        <div class="mini mini-energy">
+          <span class="label">OPS ENERGY</span>
+          <div class="meter"><i></i></div>
+          <div class="lamps"><i>NET</i><i>DB</i><i>PWR</i><i>ATK</i></div>
+        </div>
+        <div class="iter-tags"><span>energy</span><span>caution</span><span>C2 link</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#57ffb0">
+        <div class="iter-top"><span>03</span><em>TACTIC HAND</em></div>
+        <h3>五张处置卡</h3>
+        <p>WAF 限流、弹性扩容、主备切换、封禁 IP、回滚版本；费用、冷却、说明与 1–5 快捷键。</p>
+        <div class="mini mini-cards"><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="iter-tags"><span>deck</span><span>cost</span><span>hotkeys</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#ff2e88">
+        <div class="iter-top"><span>04</span><em>CARD FEEDBACK</em></div>
+        <h3>出牌反馈与战术效果</h3>
+        <p>能量扣除、冷却遮罩/倒计时、出牌动画、屏幕闪光、日志/通讯回执；封禁 IP 会清空敌舰并爆出粒子。</p>
+        <div class="mini mini-cool"><div class="card"></div><div class="cd"></div><i class="glow"></i></div>
+        <div class="iter-tags"><span>cooldown</span><span>VFX</span><span>score</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#ff3b4e">
+        <div class="iter-top"><span>05</span><em>THREAT INTENT</em></div>
+        <h3>敌方意图面板</h3>
+        <p>P1 SYN FLOOD / P2 DB LOCK / P3 OMNI BEAM，倒计时与进度条；P3 进入红色告警态，像卡牌 Boss 的意图预告。</p>
+        <div class="mini mini-intent">
+          <div class="chip"><b>☣ SYN FLOOD</b><span>10.4 SEC</span></div>
+          <div class="bar"><i></i></div>
+          <small>1.2 Tbps 混合流量 · 冲击 WAF</small>
+        </div>
+        <div class="iter-tags"><span>intent</span><span>countdown</span><span>P3 alert</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#9a6bff">
+        <div class="iter-top"><span>06</span><em>C2 COMMS</em></div>
+        <h3>C2 通讯窗口</h3>
+        <p>滚动通话、打字机、波形与 LINK / ALERT / END 状态；阶段公告与出牌回执自动进入频道。</p>
+        <div class="mini mini-comms">
+          <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="line"><time>00:08</time><span>C2 频道建立 · 指挥席已接入</span></div>
+          <div class="line warn"><time>00:12</time><span>DDoS 洪峰来袭 · 1.2 Tbps</span></div>
+        </div>
+        <div class="iter-tags"><span>typewriter</span><span>waveform</span><span>priority</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#5ef2ff">
+        <div class="iter-top"><span>07</span><em>INSTRUMENTS</em></div>
+        <h3>雷达仪表盘</h3>
+        <p>战术终端右侧的扫描雷达：环、扇区、节点绿/黄/红点、敌对红点，P1/P2/P3 敌情数量不同。</p>
+        <div class="mini mini-radar">
+          <div class="scope"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+        </div>
+        <div class="iter-tags"><span>radar</span><span>nodes</span><span>hostile</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#ffc857">
+        <div class="iter-top"><span>08</span><em>DESIGN SYSTEM</em></div>
+        <h3>视觉系统统一</h3>
+        <p>切角 token、面板四角括线、相位 LED、链路状态灯；阶段条从标签升级为座舱 annunciator。</p>
+        <div class="mini mini-system">
+          <i class="swatch" style="background:linear-gradient(180deg,#5ef2ff,#123a48)"></i>
+          <i class="swatch" style="background:linear-gradient(180deg,#ffc857,#3a2a08)"></i>
+          <i class="swatch" style="background:linear-gradient(180deg,#ff2e88,#3a0a1e)"></i>
+          <div class="panel"></div>
+        </div>
+        <div class="iter-tags"><span>tokens</span><span>corners</span><span>annunciator</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#57ffb0">
+        <div class="iter-top"><span>09</span><em>AFTER ACTION</em></div>
+        <h3>结算与复盘</h3>
+        <p>S 评级虚线印章、积分滚动、本局出牌序列 chip、MVP 统计与一键复制战报，让“打完这一局”可复盘。</p>
+        <div class="mini mini-result">
+          <b class="rank">S</b>
+          <div class="chips"><i>⛨ WAF 限流 · 00:08</i><i>⚡ 弹性扩容 · 00:14</i><i>⊘ 封禁 IP · 00:21</i></div>
+        </div>
+        <div class="iter-tags"><span>S-rank</span><span>sequence</span><span>copy</span></div>
+      </article>
+
+      <article class="iter reveal" style="--accent:#2d7bff">
+        <div class="iter-top"><span>10</span><em>RESPONSIVE / CINEMA</em></div>
+        <h3>响应式与电影模式</h3>
+        <p>1280 / 1920 / 2560 / 4K 安全区；短屏收起 C2 与击杀播报；电影模式隐藏座舱，只留 2.39:1。</p>
+        <div class="mini mini-responsive"><i data-label="1024"></i><i data-label="1920"></i><i data-label="4K"></i></div>
+        <div class="iter-tags"><span>1280–4K</span><span>2.39:1</span><span>safe area</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section id="system" class="section">
+    <div class="section-head reveal">
+      <div>
+        <div class="section-kicker">03 / DESIGN TOKENS</div>
+        <h2>一套可复用的座舱视觉语言</h2>
+      </div>
+      <p>颜色、字体、切角与发光都来自同一套 token；新增面板只要复用 `.panel` / `--cut` / 状态色。</p>
+    </div>
+    <div class="system-grid">
+      <div class="system-card reveal">
+        <h3>Palette</h3>
+        <p>深空青为默认主色，琥珀用于能量/警示，品红用于敌对与 Boss，绿色只表示恢复与完成。</p>
+        <div class="swatches">
+          <div class="swatch"><i style="background:#5ef2ff"></i><span>CYAN / 5EF2FF</span></div>
+          <div class="swatch"><i style="background:#ffc857"></i><span>AMBER / FFC857</span></div>
+          <div class="swatch"><i style="background:#ff2e88"></i><span>MAGENTA / FF2E88</span></div>
+          <div class="swatch"><i style="background:#57ffb0"></i><span>GREEN / 57FFB0</span></div>
+          <div class="swatch"><i style="background:#9a6bff"></i><span>VIOLET / 9A6BFF</span></div>
+        </div>
+      </div>
+      <div class="system-card reveal">
+        <h3>Type & Tokens</h3>
+        <p>标题用 Bahnschrift / DIN，指标与标签用等宽字体；所有数字使用 tabular-nums 对齐。</p>
+        <div class="type-sample"><b>ATLAS // 防区守住了。</b><span>DISPLAY · 700 · 0.02EM</span></div>
+        <div class="token-list">
+          <div class="token-row"><span>--cut</span><b>0.9em 面板切角</b></div>
+          <div class="token-row"><span>--line</span><b>rgba(94,242,255,.18)</b></div>
+          <div class="token-row"><span>--cyan</span><b>#5EF2FF 主信号</b></div>
+          <div class="token-row"><span>--amber</span><b>#FFC857 能量/警示</b></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="quote reveal">
+    <div class="quote-inner">
+      <p>“卡牌负责表达<b>策略选择</b>的博弈感，驾驶舱负责营造<b>我在指挥</b>的沉浸感；两者结合，既有深度又有视觉冲击力，而且完全跳出了 RTS 的范式。”</p>
+      <span>— 设计风格.md / 方案 A + C 推荐组合</span>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="footer-brand"><b>ATLAS // DRILL-2077</b> · 10 ITERATIONS · WEBGL PROTOTYPE</div>
+  <div class="footer-links">
+    <a href="./index.html">大厅</a>
+    <a href="./console.html">指挥席</a>
+    <a href="https://github.com/whllowp/atlas-deep-space-drill" target="_blank" rel="noreferrer">GitHub ↗</a>
+    <a href="../docs/design-iterations.md">迭代记录 ↗</a>
+  </div>
+</footer>
+
+<script>/*__JS__*/</script>
+</body>
+</html>
